@@ -1,6 +1,11 @@
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+
 module Main where
 
-import Lib
+import qualified Cli
 
 main :: IO ()
-main = someFunc
+main = Cli.cliIFace
