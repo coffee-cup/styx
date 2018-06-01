@@ -65,13 +65,9 @@ commafy = hsep . punctuate comma
 ppmaybe :: Pretty a => Maybe a -> Doc
 ppmaybe = maybe empty pp
 
-banner :: Show a => a -> String
-banner x = render $
-  text (replicate n '=')
-  <+>
-  text msg
-  <+>
-  text (replicate n '=')
+banner :: String
+banner = render $
+  text (ascii ++
+  " Styx Compiler 0.1.0\n")
   where
-    msg = show x
-    n = (76 - length msg) `div` 2
+    ascii = "  ___ _            \r\n / __| |_ _  ___ __\r\n \\__ \\  _| || \\ \\ /\r\n |___/\\__|\\_, /_\\_\\\r\n          |__/     \r\n\n"

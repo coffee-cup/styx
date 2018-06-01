@@ -89,6 +89,9 @@ flags _ = do
   cs <- gets _compilerState
   showMsg $ show $ _flags cs
 
+help :: a -> Repl ()
+help _ = showMsg "Nothing here yet"
+
 quit :: a -> Repl ()
 quit _ = liftIO exitSuccess
 
@@ -103,7 +106,14 @@ defaultMatcher =
 -- Default tab completer
 comp :: (Monad m, MonadState IState m) => WordCompleter m
 comp n = do
-  let cmds = [":load", ":set", ":unset", ":flags", ":quit"]
+  let cmds =
+        [ ":load"
+        , ":set"
+        , ":unset"
+        , ":flags"
+        , ":quit"
+        , ":help"
+        ]
   return $ filter (isPrefixOf n) cmds
 
 options :: [(String, [String] -> Repl ())]
@@ -111,6 +121,7 @@ options =
   [ ("set", set)
   , ("unset", unset)
   , ("flags", flags)
+  , ("help", help)
   , ("quit", quit)
   ]
 
@@ -125,6 +136,6 @@ shell cs pre = flip evalStateT (initState cs)
 
 entry :: CompilerState -> IO ()
 entry cs = do
-  L.putStrLn $ L.pack $ banner "Hello"
+  L.putStrLn $ L.pack banner
   shell cs (return ())
 
