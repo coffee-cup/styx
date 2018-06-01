@@ -5,7 +5,11 @@
 
 module Cli where
 
-import Flags
+import           Compiler
+import           Flags
+import           Monad
+
+import           Control.Monad.State
 
 import           Data.Semigroup      ((<>))
 import           Data.Text           as T
@@ -40,23 +44,34 @@ parseLineOpts = runFileOpt <|> runReplOpt
 parseOptions :: Parser Options
 parseOptions = Options <$> parseLineOpts <*> parseFlags
 
-runScript :: FilePath -> IO ()
-runScript fname = do
+runFile :: CompilerState -> FilePath -> IO ()
+runFile compilerState fname = do
+  mtext <- getFileContents fname
+  let updatedState = compilerState { _fname = Just fname, _src = mtext }
+
+  (res, _) <- runCompilerM compileFile updatedState
+  case res of
+    Left err -> print err
+    Right _  -> TIO.putStrLn "fuck yeah"
+
+getFileContents :: FilePath -> IO (Maybe T.Text)
+getFileContents fname = do
   exists <- doesFileExist fname
   if exists
-    then TIO.readFile fname >>= runFile fname
-    else TIO.putStrLn "File does not exist."
-
-runFile :: FilePath -> T.Text -> IO ()
-runFile filePath fileExpr =
-  TIO.putStrLn $ T.pack $ "Running file " ++ filePath
+    then do
+      text <- TIO.readFile fname
+      return $ Just text
+    else return Nothing
 
 styxEntry :: Options -> IO ()
 styxEntry opts =
-  case lineOpt opts of
-    UseReplLineOpts       -> TIO.putStrLn "repl"
-    RunFileLineOpts fname -> do
-      TIO.putStrLn $ T.pack $ "file " ++ fname
+  let
+    compilerState = emptyCS { _flags = flags opts }
+  in
+    case lineOpt opts of
+        UseReplLineOpts       -> TIO.putStrLn "repl"
+        RunFileLineOpts fname ->
+          runFile compilerState fname
 
 cliIFace :: IO ()
 cliIFace = execParser opts >>= styxEntry
