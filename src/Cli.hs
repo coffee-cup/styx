@@ -8,13 +8,14 @@ module Cli where
 import           Compiler
 import           Flags
 import           Monad
+import qualified Repl
 
 import           Control.Monad.State
 -- import           Data.Monoid         (pure)
 
 import           Data.Semigroup      ((<>))
-import           Data.Text           as T
-import           Data.Text.IO        as TIO
+import           Data.Text.Lazy      as L
+import           Data.Text.Lazy.IO   as TIO
 import           Options.Applicative
 import           System.Directory
 
@@ -58,7 +59,7 @@ runFile compilerState fname = do
     Left err -> print err
     Right _  -> TIO.putStrLn "fuck yeah"
 
-getFileContents :: FilePath -> IO (Maybe T.Text)
+getFileContents :: FilePath -> IO (Maybe L.Text)
 getFileContents fname = do
   exists <- doesFileExist fname
   if exists
@@ -70,12 +71,13 @@ getFileContents fname = do
 styxEntry :: Options -> IO ()
 styxEntry opts =
   let
-    compilerState = emptyCS { _flags = flags opts }
+    cs = emptyCS { _flags = flags opts }
   in
     case lineOpt opts of
-        UseReplLineOpts       -> TIO.putStrLn "repl"
+        UseReplLineOpts       ->
+          Repl.entry cs
         RunFileLineOpts fname ->
-          runFile compilerState fname
+          runFile cs fname
 
 cliIFace :: IO ()
 cliIFace = execParser opts >>= styxEntry

@@ -5,7 +5,7 @@ module Monad where
 import qualified Flags
 import qualified Frontend             as Syn
 
-import qualified Data.Text            as T
+import qualified Data.Text.Lazy            as L
 
 import           Control.Applicative
 import           Control.Monad.Except
@@ -23,6 +23,7 @@ newtype CompilerM a = Compiler { runCompiler :: CompilerMonad a }
     , Applicative
     , Monad
     , MonadFix
+    , MonadIO
     , MonadState CompilerState
     , MonadError CompilerError)
 
@@ -32,7 +33,7 @@ newtype CompilerM a = Compiler { runCompiler :: CompilerMonad a }
 data CompilerState = CompilerState
   { _fname   :: Maybe FilePath   -- File path
   , _imports :: [FilePath]       -- Loaded modules
-  , _src     :: Maybe T.Text     -- File source
+  , _src     :: Maybe L.Text     -- File source
   , _ast     :: Maybe Syn.Module -- Frontend AST
   , _flags   :: Flags.Flags      -- Compiler flags
   } deriving (Show)
@@ -53,6 +54,7 @@ type Pos = String
 
 data CompilerError
   = FileNotFound FilePath
+  | ReplCommandError String
   deriving (Eq, Show)
 
 -- Run the compiler pipeline
