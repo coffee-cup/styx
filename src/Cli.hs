@@ -10,6 +10,7 @@ import           Flags
 import           Monad
 
 import           Control.Monad.State
+-- import           Data.Monoid         (pure)
 
 import           Data.Semigroup      ((<>))
 import           Data.Text           as T
@@ -27,19 +28,22 @@ data Options = Options
   , flags   :: Flags.Flags
   } deriving (Eq, Show)
 
-parseLineOpts :: Parser LineOpts
-parseLineOpts = runFileOpt <|> runReplOpt
-  where
-    runFileOpt =
-      RunFileLineOpts <$> strOption (  long "file"
-                                    <> short 'f'
-                                    <> metavar "FILE"
-                                    <> help "File containing a script to run")
-    runReplOpt =
-      UseReplLineOpts <$ flag' () (  long "repl"
-                                  <> short 'r'
-                                  <> help  "Run the interactive REPL")
+parseRepl :: Parser LineOpts
+parseRepl = pure UseReplLineOpts
 
+parseFile :: Parser LineOpts
+parseFile = RunFileLineOpts <$> argument str (metavar "FILE")
+
+parseLineOpts :: Parser LineOpts
+parseLineOpts = runReplOpt <|> runFileOpt
+  where
+    runReplOpt = UseReplLineOpts <$
+      flag' () (  long "repl"
+               <> short 'r'
+               <> help "Start the interactive repl")
+    runFileOpt = RunFileLineOpts <$>
+      argument str (  metavar "FILE"
+                   <> help "Interpret a file")
 
 parseOptions :: Parser Options
 parseOptions = Options <$> parseLineOpts <*> parseFlags
