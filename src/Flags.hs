@@ -8,10 +8,9 @@ data Flags = Flags
   } deriving (Eq)
 
 flagMap :: Flags -> [(String, Bool)]
-flagMap (Flags
+flagMap Flags
          { dumpTokens = tokens
-         }) =
-  [("ddump-tokens", tokens)]
+         } = [("ddump-tokens", tokens)]
 
 instance Show Flags where
   show flags =

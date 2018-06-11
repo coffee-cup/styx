@@ -1,24 +1,24 @@
-{-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE OverloadedStrings    #-}
-{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
 
 module Repl
   ( entry
   ) where
 
+import           Compiler
 import           Flags
 import           Monad
-import Pretty
-import Compiler
+import           Pretty
 
-import qualified Data.Text.Lazy         as L
-import qualified Data.Text.Lazy.IO      as L
+import qualified Data.Text.Lazy             as L
+import qualified Data.Text.Lazy.IO          as L
 
 import           Control.Monad.Except
 import           Control.Monad.State.Strict
 
-import           Data.List              (isPrefixOf)
+import           Data.List                  (isPrefixOf)
 
 import           System.Console.Repline
 import           System.Exit
@@ -90,7 +90,11 @@ flags _ = do
   showMsg $ show $ _flags cs
 
 help :: a -> Repl ()
-help _ = showMsg "Nothing here yet"
+help _ = showMsg "Commands available \n\
+\  :set FLAG\tsets a compiler flag \n\
+\  :unset FLAG\tunsets a compiler flag \n\
+\  :flags\tprint all set compiler flags \n\
+\  :quit\tquit the repl"
 
 quit :: a -> Repl ()
 quit _ = liftIO exitSuccess
