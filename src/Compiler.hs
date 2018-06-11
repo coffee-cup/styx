@@ -7,12 +7,13 @@ module Compiler where
 
 import           Flags
 import           Monad
+import           Parser
 
 import           Control.Monad.Except
 import           Control.Monad.State
 
-import           Data.Text.Lazy            as L
-import           Data.Text.Lazy.IO         as L
+import           Data.Text.Lazy       as L
+import           Data.Text.Lazy.IO    as L
 import           System.Directory
 
 compileFile :: CompilerM ()
@@ -28,5 +29,11 @@ compileFile = do
 compileLine :: CompilerM ()
 compileLine = do
   Just text <- gets _src
-  inIO $ L.putStrLn "Compiling a line"
-  inIO $ L.putStrLn text
+  parseText text
+  -- inIO $ L.putStrLn "Compiling a line"
+  -- inIO $ L.putStrLn text
+
+parseText :: L.Text -> CompilerM ()
+parseText input = do
+  let tokens = parseTokens $ L.unpack input
+  inIO $ L.putStrLn $ L.pack $ show tokens
