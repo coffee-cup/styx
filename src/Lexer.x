@@ -28,6 +28,7 @@ tokens :-
 
   -- Syntax
   $digit+                       { \s -> TokenInt (read s) }
+  $digit+\.$digit*              { \s -> TokenDouble (read s) }
   "->"                          { \s -> TokenArrow }
   \=                            { \s -> TokenEq }
   \\                            { \s -> TokenLambda }
@@ -41,21 +42,18 @@ tokens :-
 {
 
 data Token
-  = TokenLambda
-  | TokenInt Int
-  | TokenSym String
+  = TokenInt Int
+  | TokenDouble Double
   | TokenArrow
   | TokenEq
+  | TokenLambda
   | TokenAdd
   | TokenSub
   | TokenMul
   | TokenLParen
   | TokenRParen
-  | TokenEOF
+  | TokenSym String
   deriving (Eq, Show)
-
--- scanTokens :: String -> [Token]
--- scanTokens = alexScanTokens
 
 scanTokens :: String -> Except String [Token]
 scanTokens str = go ('\n', [], str) where

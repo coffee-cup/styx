@@ -55,6 +55,7 @@ type Pos = String
 data CompilerError
   = FileNotFound FilePath
   | ReplCommandError String
+  | ParseError String
   deriving (Eq, Show)
 
 -- Run the compiler pipeline

@@ -22,8 +22,9 @@ data Expr
 
 data Literal
   = LitInt Int                   -- 1
+  | LitDouble Double             -- 1.1
   | LitChar Char                 -- 'a'
-  | LitString [Word8]
+  | LitString [Word8]            -- "hello"
   deriving (Eq, Ord, Show)
 
 data BindGroup = BindGroup
