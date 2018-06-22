@@ -1,6 +1,6 @@
 # styx
 
-Styx is an interpreted (eventually compiled) programming language
+Styx is an interpreted (eventually compiled) programming language.
 
 ## Features
 
@@ -14,3 +14,11 @@ Styx is an interpreted (eventually compiled) programming language
 - Immutability
 
 _This is a very large work in progress and does not currently work :D_
+
+## TODO
+
+- [x] Repl
+- [x] Parser
+- [ ] Type checking and inference
+- [ ] Interpreter
+- [ ] Code generation
