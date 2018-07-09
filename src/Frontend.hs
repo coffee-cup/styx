@@ -21,7 +21,7 @@ data Expr
   deriving (Eq, Show)
 
 data Literal
-  = LitInt Int                   -- 1
+  = LitInt Integer               -- 1
   | LitDouble Double             -- 1.1
   | LitChar Char                 -- 'a'
   | LitString [Word8]            -- "hello"
