@@ -9,7 +9,7 @@ import           Lexer
 import           Control.Applicative        (empty)
 import           Control.Monad              (void)
 import           Data.Char
-import           Data.Text                  as T
+import           Data.Text.Lazy             as L
 import           Data.Void
 import           Text.Megaparsec
 import           Text.Megaparsec.Char
@@ -17,32 +17,53 @@ import qualified Text.Megaparsec.Char.Lexer as L
 
 -- Literal Parser
 
-pIntLit :: Parser Literal
+pIntLit :: Parser Expr
 pIntLit = do
   i <- integer
-  return $ LitInt i
+  return $ ELit $ LitInt i
 
-pDoubleLit :: Parser Literal
+pDoubleLit :: Parser Expr
 pDoubleLit = do
   d <- double
-  return $ LitDouble d
+  return $ ELit $ LitDouble d
 
-pLiteral :: Parser Literal
-pLiteral = try pDoubleLit <|> pIntLit
+pBoolLit :: Parser Expr
+pBoolLit =
+  (rword "true" >> return (ELit $ LitBool True))
+  <|> (rword "false" >> return (ELit $ LitBool False))
 
--- lineComment :: Parser ()
--- lineComment = L.skipLineComment "#"
+pCharLit :: Parser Expr
+pCharLit = do
+  _ <- char '\''
+  c <- anyChar
+  _ <- char '\''
+  return $ ELit $ LitChar c
 
--- scn :: Parser ()
--- scn = L.space space1 lineComment empty
+pStringLit :: Parser Expr
+pStringLit = do
+  _ <- char '"'
+  x <- many $ escapedChars <|> noneOf ("\"\\" :: String)
+  _ <- char '"'
+  return $ ELit $ LitString x
 
--- sc :: Parser ()
--- sc = L.space (void $ takeWhile1P Nothing f) lineComment empty
---   where
---     f x = x == ' ' || x == '\t'
+pLiteral :: Parser Expr
+pLiteral = try pDoubleLit
+  <|> pIntLit
+  <|> pBoolLit
+  <|> pCharLit
+  <|> pStringLit
 
--- lexeme :: Parser a -> Parser a
--- lexeme = L.lexeme sc
+expr :: Parser Expr
+expr = pLiteral
+
+parseUnpack :: Either (ParseError Char Void) Expr -> Either String Expr
+parseUnpack res = case res of
+  Left err -> Left $ parseErrorPretty err
+  Right ast -> Right ast
+
+parseExpr :: L.Text -> Either String Expr
+parseExpr = parseUnpack . runParser expr "<stdin>" . L.strip
+
 
 -- pItem :: Parser String
 -- pItem = lexeme (takeWhile1P Nothing f) <?> "list item"
@@ -71,6 +92,3 @@ pLiteral = try pDoubleLit <|> pIntLit
 
 -- parser :: Parser (String, [(String, [String])])
 -- parser = pItemList <* eof
-
-parseExpr :: T.Text -> Either String Expr
-parseExpr = undefined

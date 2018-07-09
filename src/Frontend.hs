@@ -9,8 +9,6 @@ import Prelude hiding (foldr, foldr1, concatMap)
 import           Name
 import           Type
 
-import           GHC.Word (Word8)
-
 type Constr = Name
 
 data Expr
@@ -23,8 +21,9 @@ data Expr
 data Literal
   = LitInt Integer               -- 1
   | LitDouble Double             -- 1.1
+  | LitBool Bool                 -- true, false
   | LitChar Char                 -- 'a'
-  | LitString [Word8]            -- "hello"
+  | LitString String             -- "hello"
   deriving (Eq, Ord, Show)
 
 data BindGroup = BindGroup

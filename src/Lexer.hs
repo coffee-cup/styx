@@ -4,13 +4,13 @@
 module Lexer where
 
 import           Control.Applicative        hiding (many)
-import qualified Data.Text                  as T
+import qualified Data.Text.Lazy             as L
 import           Data.Void
 import           Text.Megaparsec
 import           Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
 
-type Parser = Parsec Void T.Text
+type Parser = Parsec Void L.Text
 
 lineComment :: Parser ()
 lineComment = L.skipLineComment "#"
@@ -31,8 +31,8 @@ lexeme :: Parser a -> Parser a
 lexeme = L.lexeme sc
 
 -- Parse a fixed string
-symbol :: String -> Parser T.Text
-symbol = L.symbol sc . T.pack
+symbol :: String -> Parser L.Text
+symbol = L.symbol sc . L.pack
 
 -- Parse something between parenthesis
 parens :: Parser a -> Parser a
@@ -46,13 +46,26 @@ integer = lexeme L.decimal
 double :: Parser Double
 double = lexeme L.float
 
+-- Parse an escaped character
+escapedChars :: Parser Char
+escapedChars = do
+  _ <- char '\\'                   -- a backslash
+  x <- oneOf ("\\\"nrt" :: String) -- either backslash or doublequote
+  return $ case x of
+    '\\' -> x
+    '"'  -> x
+    'n'  -> '\n'
+    'r'  -> '\r'
+    't'  -> '\t'
+    _    -> x
+
 -- List of reserved words
 reservedWords :: [String]
 reservedWords = ["if", "then", "else", "case"]
 
 -- Parse a reserved word
 rword :: String -> Parser ()
-rword w = (lexeme . try) (string (T.pack w) *> notFollowedBy alphaNumChar)
+rword w = (lexeme . try) (string (L.pack w) *> notFollowedBy alphaNumChar)
 
 -- Parse an identifier
 identifier :: Parser String
