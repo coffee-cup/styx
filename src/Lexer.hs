@@ -4,6 +4,7 @@
 module Lexer where
 
 import           Control.Applicative        hiding (many)
+import           Data.Char
 import qualified Data.Text.Lazy             as L
 import           Data.Void
 import           Text.Megaparsec
@@ -61,7 +62,7 @@ escapedChars = do
 
 -- List of reserved words
 reservedWords :: [String]
-reservedWords = ["if", "then", "else", "case"]
+reservedWords = ["if", "then", "else", "case", "true", "false", "module", "data"]
 
 -- Parse a reserved word
 rword :: String -> Parser ()
@@ -75,3 +76,18 @@ identifier = (lexeme . try) (p >>= check)
     check x = if x `elem` reservedWords
                  then fail $ "keyword " ++ show x ++ " cannot be an identifier"
                  else return x
+
+-- Parse an identifier that passes a predicate
+predIdentifier :: (String -> Bool) -> String -> Parser String
+predIdentifier p err = identifier >>= check
+  where
+    check x = if p x
+      then return x
+      else fail $ "identifier " ++ x ++ " " ++ err
+-- Parse an uppercase identifier
+upperIdentifier :: Parser String
+upperIdentifier = predIdentifier (isUpper . head) "does not start with a uppercase letter"
+
+-- Parse a lowercase identifier
+lowerIdentifier :: Parser String
+lowerIdentifier = predIdentifier (isLower . head) "does not start with a lowercase letter"

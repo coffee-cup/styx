@@ -5,6 +5,7 @@ module Parser where
 
 import           Frontend
 import           Lexer
+import           Name
 
 import           Control.Applicative        (empty)
 import           Control.Monad              (void)
@@ -15,55 +16,110 @@ import           Text.Megaparsec
 import           Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
 
--- Literal Parser
+-- Literal Parsers
 
-pIntLit :: Parser Expr
+pIntLit :: Parser Literal
 pIntLit = do
   i <- integer
-  return $ ELit $ LitInt i
+  return $ LitInt i
 
-pDoubleLit :: Parser Expr
+pDoubleLit :: Parser Literal
 pDoubleLit = do
   d <- double
-  return $ ELit $ LitDouble d
+  return $ LitDouble d
 
-pBoolLit :: Parser Expr
+pBoolLit :: Parser Literal
 pBoolLit =
-  (rword "true" >> return (ELit $ LitBool True))
-  <|> (rword "false" >> return (ELit $ LitBool False))
+  (rword "true" >> return (LitBool True))
+  <|> (rword "false" >> return (LitBool False))
 
-pCharLit :: Parser Expr
+pCharLit :: Parser Literal
 pCharLit = do
   _ <- char '\''
   c <- anyChar
   _ <- char '\''
-  return $ ELit $ LitChar c
+  return $ LitChar c
 
-pStringLit :: Parser Expr
+pStringLit :: Parser Literal
 pStringLit = do
   _ <- char '"'
   x <- many $ escapedChars <|> noneOf ("\"\\" :: String)
   _ <- char '"'
-  return $ ELit $ LitString x
+  return $ LitString x
 
-pLiteral :: Parser Expr
+pLiteral :: Parser Literal
 pLiteral = try pDoubleLit
   <|> pIntLit
   <|> pBoolLit
   <|> pCharLit
   <|> pStringLit
 
-expr :: Parser Expr
-expr = pLiteral
+pLiteralExpr :: Parser Expr
+pLiteralExpr = do
+  lit <- pLiteral
+  return $ ELit lit
 
-parseUnpack :: Either (ParseError Char Void) Expr -> Either String Expr
+-- Patterns
+
+pPatternLit :: Parser Pattern
+pPatternLit = do
+  lit <- pLiteral
+  return $ PLit lit
+
+pPatternName :: Parser Pattern
+pPatternName = do
+  name <- lowerIdentifier
+  return $ PVar $ Name name
+
+pPatternConstr :: Parser Pattern
+pPatternConstr = do
+  name <- upperIdentifier
+  vars <- pPattern `sepBy` sc
+  return $ PCon (Name name) vars
+
+pPatternWild :: Parser Pattern
+pPatternWild = char '_' >> return PWild
+
+pPattern :: Parser Pattern
+pPattern = pPatternLit
+  <|> try pPatternName
+  <|> pPatternConstr
+  <|> pPatternWild
+
+-- Functions
+
+-- pFunctionDecl :: Parser Decl
+-- pFunctionDecl =
+--   name <- lowerIdentifier
+
+-- Module Parser
+
+-- pModule :: Parser Module
+-- pModule = do
+--   rword "module"
+--   name <- upperIdentifier
+
+
+expr :: Parser Expr
+expr = pLiteralExpr
+
+contents :: Parser a -> Parser a
+contents p = do
+  scn
+  r <- try $ lexeme p
+  eof
+  return r
+
+parseUnpack :: Either (ParseError Char Void) a -> Either String a
 parseUnpack res = case res of
-  Left err -> Left $ parseErrorPretty err
+  Left err  -> Left $ parseErrorPretty err
   Right ast -> Right ast
 
 parseExpr :: L.Text -> Either String Expr
-parseExpr = parseUnpack . runParser expr "<stdin>" . L.strip
+parseExpr = parseUnpack . runParser (contents expr) "<stdin>" . L.strip
 
+parseSimple :: Parser a -> L.Text -> Either String a
+parseSimple p = parseUnpack . runParser (contents p) "<stdin>" . L.strip
 
 -- pItem :: Parser String
 -- pItem = lexeme (takeWhile1P Nothing f) <?> "list item"

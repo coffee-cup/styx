@@ -9,6 +9,7 @@ import Prelude hiding (foldr, foldr1, concatMap)
 import           Name
 import           Type
 
+-- Constructor
 type Constr = Name
 
 data Expr
@@ -49,5 +50,5 @@ data Decl
   | TypeDecl Type                -- f :: Int -> Int
   deriving (Eq, Show)
 
-data Module = Module Name [Decl] -- module T export { .. }
+data Module = Module Name [Decl] -- module T
   deriving (Eq, Show)

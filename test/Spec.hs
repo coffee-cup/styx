@@ -3,6 +3,7 @@
 module Main (main) where
 
 import           Frontend
+import           Name
 import           Parser
 
 import qualified Data.Text  as T
@@ -12,31 +13,56 @@ testLiterals :: IO ()
 testLiterals = do
   hspec $ describe "Literals" $ do
     it "Integer" $
-      parseExpr "1" `shouldBe` (Right $ ELit $ LitInt 1)
+      parseSimple pLiteral "1" `shouldBe` (Right $ LitInt 1)
 
     it "Double" $
-      parseExpr "1.1" `shouldBe` (Right $ ELit $ LitDouble 1.1)
+      parseSimple pLiteral "1.1" `shouldBe` (Right $ LitDouble 1.1)
 
     it "Bool True" $
-      parseExpr "true" `shouldBe` (Right $ ELit $ LitBool True)
+      parseSimple pLiteral "true" `shouldBe` (Right $ LitBool True)
 
     it "Bool False" $
-      parseExpr "false" `shouldBe` (Right $ ELit $ LitBool False)
+      parseSimple pLiteral "false" `shouldBe` (Right $ LitBool False)
 
     it "Char" $
-      parseExpr "'c'" `shouldBe` (Right $ ELit $ LitChar 'c')
+      parseSimple pLiteral "'c'" `shouldBe` (Right $ LitChar 'c')
 
     it "String plain" $
-      parseExpr "\"hello\"" `shouldBe` (Right $ ELit $ LitString "hello")
+      parseSimple pLiteral "\"hello\"" `shouldBe` (Right $ LitString "hello")
 
     it "String with newline" $
-      parseExpr "\"newline\n\"" `shouldBe` (Right $ ELit $ LitString "newline\n")
+      parseSimple pLiteral "\"newline\n\"" `shouldBe` (Right $ LitString "newline\n")
 
     it "String with tab" $
-      parseExpr "\"tab\t\"" `shouldBe` (Right $ ELit $ LitString "tab\t")
+      parseSimple pLiteral "\"tab\t\"" `shouldBe` (Right $ LitString "tab\t")
 
     it "String with escaped quotes" $
-      parseExpr "\"escaped\\\"\"" `shouldBe` (Right $ ELit $ LitString "escaped\"")
+      parseSimple pLiteral "\"escaped\\\"\"" `shouldBe` (Right $ LitString "escaped\"")
+
+testPatterns :: IO ()
+testPatterns = do
+  hspec $ describe "Patterns" $ do
+    it "Literal" $
+      parseSimple pPattern "32" `shouldBe` (Right $ PLit $ LitInt 32)
+
+    it "Name" $
+      parseSimple pPattern "x" `shouldBe` (Right $ PVar $ Name "x")
+
+    it "Wild" $
+      parseSimple pPattern "_" `shouldBe` (Right $ PWild)
+
+    it "Constructor no vars" $
+      parseSimple pPattern "Hello" `shouldBe` (Right $ PCon (Name "Hello") [])
+
+    it "Constructor with single var" $
+      parseSimple pPattern "Hello one" `shouldBe` (Right $ PCon (Name "Hello")
+                                                   [PVar $ Name "one"])
+
+    it "Constructor with single var" $
+      parseSimple pPattern "Hello _ 2.3" `shouldBe` (Right $ PCon (Name "Hello")
+                                                     [PWild, PLit $ LitDouble 2.3])
 
 main :: IO ()
-main = testLiterals
+main = do
+  testLiterals
+  testPatterns
