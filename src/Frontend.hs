@@ -1,36 +1,41 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE TypeSynonymInstances       #-}
 
 module Frontend where
 
-import Prelude hiding (foldr, foldr1, concatMap)
+import           Prelude hiding (concatMap, foldr, foldr1)
 
 import           Name
 import           Type
 
-import           GHC.Word (Word8)
-
+-- Constructor
 type Constr = Name
 
 data Expr
   = EApp Expr Expr               -- a b
   | EVar Name                    -- x
   | ELam Name Expr               -- \x -> y
+  | EAss Name Expr               -- x = a
   | ELit Literal                 -- 2, "hello"
+  | EIf Expr Expr Expr           -- if x then tr else fl
+  | EAnn Expr Type               -- (x : Int)
+  | EBinaryOp BinaryOp Expr Expr           -- a + b
+  | EUnaryOp UnaryOp Expr                 -- !a
   deriving (Eq, Show)
 
 data Literal
-  = LitInt Int                   -- 1
+  = LitInt Integer               -- 1
   | LitDouble Double             -- 1.1
+  | LitBool Bool                 -- true, false
   | LitChar Char                 -- 'a'
-  | LitString [Word8]            -- "hello"
+  | LitString String             -- "hello"
   deriving (Eq, Ord, Show)
 
 data BindGroup = BindGroup
-  { _matchName  :: Name
-  , _matchPats  :: [Match]
-  , _matchType  :: Maybe Type
+  { _matchName :: Name
+  , _matchPats :: [Match]
+  , _matchType :: Maybe Type
   } deriving (Eq, Show)
 
 data Match = Match
@@ -45,10 +50,48 @@ data Pattern
   | PWild                        -- _
   deriving (Eq, Show)
 
+-- data DataDecl
+--   = ...
+
 data Decl
   = FunDecl BindGroup            -- f x = x + 1
   | TypeDecl Type                -- f :: Int -> Int
   deriving (Eq, Show)
 
-data Module = Module Name [Decl] -- module T export { .. }
+data Module = Module Name [Decl] -- module T
+  deriving (Eq, Show)
+
+data BinaryOp
+  = BBinary BBinOp               -- binary
+  | RBinary RBinOp               -- relational
+  | ABinary ABinOp               -- arithmetic
+  deriving (Eq, Show)
+
+data UnaryOp
+  = BUnary BUnOp                 -- binary
+  | AUnary AUnOp                 -- arithmetic
+  deriving (Eq, Show)
+
+data BBinOp = And | Or
+  deriving (Eq, Show)
+
+data RBinOp
+   = Equal
+  | LessThan
+  | LessThanEqual
+  | GreaterThan
+  | GreaterThanEqual
+  deriving (Eq, Show)
+
+data ABinOp
+  = Add
+  | Sub
+  | Mul
+  | Div
+  deriving (Eq, Show)
+
+data BUnOp = Not
+  deriving (Eq, Show)
+
+data AUnOp = Neg
   deriving (Eq, Show)
