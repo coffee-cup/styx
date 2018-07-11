@@ -62,7 +62,29 @@ testPatterns = do
       parseSimple pPattern "Hello _ 2.3" `shouldBe` (Right $ PCon (Name "Hello")
                                                      [PWild, PLit $ LitDouble 2.3])
 
+testBindGroups :: IO()
+testBindGroups = do
+  hspec $ describe "BindGroups Single Line" $ do
+    it "No patterns" $
+      parseSimple pBindGroup "fn = 3" `shouldBe` (Right $ BindGroup
+                                                 (Name "fn")
+                                                 [Match [] (ELit $ LitInt 3)]
+                                                 Nothing)
+    it "One simple pattern" $
+      parseSimple pBindGroup "fn 3 = 3" `shouldBe` (Right $ BindGroup
+                                                    (Name "fn")
+                                                    [(Match [PLit $ LitInt 3] (ELit $ LitInt 3))]
+                                                    Nothing)
+
+    it "Two simple patterns" $
+      parseSimple pBindGroup "fn f 2 = 3" `shouldBe` (Right $ BindGroup
+                                                     (Name "fn")
+                                                     [(Match [PVar $ Name "f", PLit $ LitInt 2] (ELit $ LitInt 3))]
+                                                     Nothing)
+
+
 main :: IO ()
 main = do
   testLiterals
   testPatterns
+  testBindGroups

@@ -85,6 +85,24 @@ pPattern = pPatternLit
   <|> try pPatternName
   <|> pPatternConstr
   <|> pPatternWild
+  <|> (lexeme . parens) pPattern
+
+-- Matches
+
+pMatch :: Char -> Parser Match
+pMatch sep = do
+  pats <- pPattern `sepBy` sc
+  _ <- lexeme $ char sep
+  expr <- pExpr
+  return $ Match pats expr
+
+-- BindGroups
+
+pBindGroup :: Parser BindGroup
+pBindGroup = do
+  name <- lowerIdentifier
+  match <- pMatch '='
+  return $ BindGroup (Name name) [match] Nothing
 
 -- Functions
 
@@ -100,8 +118,8 @@ pPattern = pPatternLit
 --   name <- upperIdentifier
 
 
-expr :: Parser Expr
-expr = pLiteralExpr
+pExpr :: Parser Expr
+pExpr = pLiteralExpr
 
 contents :: Parser a -> Parser a
 contents p = do
@@ -116,10 +134,13 @@ parseUnpack res = case res of
   Right ast -> Right ast
 
 parseExpr :: L.Text -> Either String Expr
-parseExpr = parseUnpack . runParser (contents expr) "<stdin>" . L.strip
+parseExpr = parseUnpack . runParser (contents pExpr) "<stdin>" . L.strip
 
 parseSimple :: Parser a -> L.Text -> Either String a
 parseSimple p = parseUnpack . runParser (contents p) "<stdin>" . L.strip
+
+parseSimpleString :: Parser a -> String -> Either String a
+parseSimpleString p = parseUnpack . runParser (contents p) "<stdin>" . L.strip . L.pack
 
 -- pItem :: Parser String
 -- pItem = lexeme (takeWhile1P Nothing f) <?> "list item"
