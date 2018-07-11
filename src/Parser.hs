@@ -15,18 +15,15 @@ import           Data.Void
 import           Text.Megaparsec
 import           Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
+import           Text.Megaparsec.Expr
 
 -- Literal Parsers
 
 pIntLit :: Parser Literal
-pIntLit = do
-  i <- integer
-  return $ LitInt i
+pIntLit = LitInt <$> integer
 
 pDoubleLit :: Parser Literal
-pDoubleLit = do
-  d <- double
-  return $ LitDouble d
+pDoubleLit = LitDouble <$> double
 
 pBoolLit :: Parser Literal
 pBoolLit =
@@ -54,22 +51,66 @@ pLiteral = try pDoubleLit
   <|> pCharLit
   <|> pStringLit
 
-pLiteralExpr :: Parser Expr
-pLiteralExpr = do
-  lit <- pLiteral
-  return $ ELit lit
+-- Expressions
+
+pName :: Parser Name
+pName = Name <$> lowerIdentifier
+
+pExprLiteral :: Parser Expr
+pExprLiteral = ELit <$> pLiteral
+
+pExprVar :: Parser Expr
+pExprVar = EVar <$> pName
+
+-- TODO : lam should have list of expressions
+pExprLam :: Parser Expr
+pExprLam = do
+  _ <- symbol  "\\"
+  name <- pName
+  _ <- symbol "->"
+  expr <- pExpr
+  return $ ELam name expr
+
+pExprAss :: Parser Expr
+pExprAss = do
+  name <- pName
+  _ <- symbol "="
+  expr <- pExpr
+  return $ EAss name expr
+
+operators :: [[Operator Parser Expr]]
+operators =
+  [ [ Prefix ((EUnaryOp $ AUnary Neg) <$ symbol "-")
+    , Prefix ((EUnaryOp $ BUnary Not) <$ symbol "!") ]
+  , [ InfixL ((EBinaryOp $ ABinary Mul) <$ symbol "*")
+    , InfixL ((EBinaryOp $ ABinary Div) <$ symbol "/") ]
+  , [ InfixL ((EBinaryOp $ ABinary Add) <$ symbol "+")
+    , InfixL ((EBinaryOp $ ABinary Sub) <$ symbol "-") ]
+  , [ InfixL ((EBinaryOp $ RBinary Equal) <$ symbol "==")
+    , InfixL ((EBinaryOp $ RBinary LessThanEqual) <$ symbol "<=")
+    , InfixL ((EBinaryOp $ RBinary LessThan) <$ symbol "<")
+    , InfixL ((EBinaryOp $ RBinary GreaterThanEqual) <$ symbol ">=")
+    , InfixL ((EBinaryOp $ RBinary GreaterThan) <$ symbol ">") ]
+  , [ InfixL ((EBinaryOp $ BBinary And) <$ symbol "&&") ]
+  , [ InfixL ((EBinaryOp $ BBinary Or) <$ symbol "||") ]
+  ]
+
+atom :: Parser Expr
+atom = pExprLiteral
+  <|> try pExprAss
+  <|> pExprVar
+  <|> parens pExpr
+
+pExpr :: Parser Expr
+pExpr = makeExprParser atom operators
 
 -- Patterns
 
 pPatternLit :: Parser Pattern
-pPatternLit = do
-  lit <- pLiteral
-  return $ PLit lit
+pPatternLit = PLit <$> pLiteral
 
 pPatternName :: Parser Pattern
-pPatternName = do
-  name <- lowerIdentifier
-  return $ PVar $ Name name
+pPatternName = PVar <$> pName
 
 pPatternConstr :: Parser Pattern
 pPatternConstr = do
@@ -82,9 +123,9 @@ pPatternWild = char '_' >> return PWild
 
 pPattern :: Parser Pattern
 pPattern = pPatternLit
+  <|> pPatternWild
   <|> try pPatternName
   <|> pPatternConstr
-  <|> pPatternWild
   <|> (lexeme . parens) pPattern
 
 -- Matches
@@ -92,11 +133,11 @@ pPattern = pPatternLit
 pMatch :: Char -> Parser Match
 pMatch sep = do
   pats <- pPattern `sepBy` sc
-  _ <- lexeme $ char sep
+  _ <-  lexeme $ char sep
   expr <- pExpr
   return $ Match pats expr
 
--- BindGroups
+-- Functions
 
 pBindGroup :: Parser BindGroup
 pBindGroup = do
@@ -104,11 +145,16 @@ pBindGroup = do
   match <- pMatch '='
   return $ BindGroup (Name name) [match] Nothing
 
--- Functions
+pFunctionDecl :: Parser Decl
+pFunctionDecl = FunDecl <$> pBindGroup
+-- pFunctionDecl = do
+--   bind <- pBindGroup
+--   return $ FunDecl bind
 
--- pFunctionDecl :: Parser Decl
--- pFunctionDecl =
---   name <- lowerIdentifier
+-- Declarations
+
+pDecl :: Parser Decl
+pDecl = L.nonIndented scn pFunctionDecl
 
 -- Module Parser
 
@@ -118,13 +164,9 @@ pBindGroup = do
 --   name <- upperIdentifier
 
 
-pExpr :: Parser Expr
-pExpr = pLiteralExpr
-
 contents :: Parser a -> Parser a
 contents p = do
-  scn
-  r <- try $ lexeme p
+  r <- lexeme p
   eof
   return r
 
@@ -134,13 +176,13 @@ parseUnpack res = case res of
   Right ast -> Right ast
 
 parseExpr :: L.Text -> Either String Expr
-parseExpr = parseUnpack . runParser (contents pExpr) "<stdin>" . L.strip
+parseExpr = parseSimple pExpr
 
 parseSimple :: Parser a -> L.Text -> Either String a
 parseSimple p = parseUnpack . runParser (contents p) "<stdin>" . L.strip
 
 parseSimpleString :: Parser a -> String -> Either String a
-parseSimpleString p = parseUnpack . runParser (contents p) "<stdin>" . L.strip . L.pack
+parseSimpleString p = parseSimple p . L.pack
 
 -- pItem :: Parser String
 -- pItem = lexeme (takeWhile1P Nothing f) <?> "list item"

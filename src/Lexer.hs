@@ -3,10 +3,12 @@
 
 module Lexer where
 
-import           Control.Applicative        hiding (many)
+import           Control.Applicative        hiding (many, some)
+import           Control.Monad              (void)
 import           Data.Char
 import qualified Data.Text.Lazy             as L
 import           Data.Void
+
 import           Text.Megaparsec
 import           Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
@@ -25,7 +27,9 @@ scn = L.space space1 lineComment empty
 
 -- Only spaces
 sc :: Parser ()
-sc = L.space space1 lineComment blockComment
+sc = L.space (void $ takeWhile1P Nothing f) lineComment blockComment
+  where
+    f x = x == ' ' || x == '\t'
 
 -- Consume whitespace after every lexeme (not before)
 lexeme :: Parser a -> Parser a
@@ -72,7 +76,8 @@ rword w = (lexeme . try) (string (L.pack w) *> notFollowedBy alphaNumChar)
 identifier :: Parser String
 identifier = (lexeme . try) (p >>= check)
   where
-    p = (:) <$> letterChar <*> many alphaNumChar
+    p = (:) <$> (oneOf $ letterCharUnder) <*> many (oneOf $ '_' : letterCharUnder ++ ['0'..'9'])
+    letterCharUnder = '_' : ['a'..'z'] ++ ['A'..'Z']
     check x = if x `elem` reservedWords
                  then fail $ "keyword " ++ show x ++ " cannot be an identifier"
                  else return x
@@ -84,10 +89,15 @@ predIdentifier p err = identifier >>= check
     check x = if p x
       then return x
       else fail $ "identifier " ++ x ++ " " ++ err
+
 -- Parse an uppercase identifier
 upperIdentifier :: Parser String
-upperIdentifier = predIdentifier (isUpper . head) "does not start with a uppercase letter"
+upperIdentifier = predIdentifier (p . head) "does not start with a uppercase letter"
+  where
+    p = flip elem ('_' : ['A'..'Z'])
 
 -- Parse a lowercase identifier
 lowerIdentifier :: Parser String
-lowerIdentifier = predIdentifier (isLower . head) "does not start with a lowercase letter"
+lowerIdentifier = predIdentifier (p . head) "does not start with a lowercase letter"
+  where
+    p = flip elem ('_' : ['a'..'z'])
