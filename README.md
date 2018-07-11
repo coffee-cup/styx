@@ -18,7 +18,7 @@ _This is a very large work in progress and does not currently work :D I will be 
 ## TODO
 
 - [x] Repl
-- [x] Parser
+- [ ] Parser
 - [ ] Type checking and inference
 - [ ] Interpreter
 - [ ] Code generation
