@@ -220,6 +220,18 @@ spec = do
                                                      [(Match [PVar $ Name "f", PLit $ LitInt 2] (ELit $ LitInt 3))]
                                                      Nothing)
 
+    it "complex constructor pattern" $
+      parseSimple pDecl "fn f 2 _ (Hello b) (World 1.1 _) = x" `shouldBe` (Right $ FunDecl $ BindGroup
+                                                                    (Name "fn")
+                                                                    [(Match [
+                                                                         PVar $ Name "f",
+                                                                         PLit $ LitInt 2,
+                                                                         PWild,
+                                                                         PCon (Name "Hello") [PVar $ Name "b"],
+                                                                         PCon (Name "World") [PLit $ LitDouble 1.1, PWild]]
+                                                                     (EVar $ Name "x"))]
+                                                                      Nothing)
+
     it "const function" $
       parseSimpleFile pDecl (testFile "fundecl1") `shouldBe` (Right $ FunDecl $ BindGroup
                                                                 (Name "const")

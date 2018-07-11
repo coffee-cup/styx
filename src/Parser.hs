@@ -119,7 +119,7 @@ pPatternConstr = do
   return $ PCon (Name name) vars
 
 pPatternWild :: Parser Pattern
-pPatternWild = char '_' >> return PWild
+pPatternWild = symbol "_" >> return PWild
 
 pPattern :: Parser Pattern
 pPattern = pPatternLit
