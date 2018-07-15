@@ -186,11 +186,14 @@ pDecl = L.nonIndented scn pFunctionDecl
 
 -- Module Parser
 
--- pModule :: Parser Module
--- pModule = do
---   rword "module"
---   name <- upperIdentifier
-
+pModule :: Parser Module
+pModule = L.nonIndented scn p
+  where
+    p = do
+      rword "module"
+      name <- Name <$> upperIdentifier
+      decls <- many pDecl
+      return $ Module name decls
 
 contents :: Parser a -> Parser a
 contents p = do
@@ -203,6 +206,9 @@ parseUnpack res = case res of
   Left err  -> Left $ parseErrorPretty err
   Right ast -> Right ast
 
+parseModule :: String -> L.Text -> Either String Module
+parseModule input = runStyxParser input pModule
+
 parseExpr :: L.Text -> Either String Expr
 parseExpr = parseSimple pExpr
 
@@ -211,6 +217,10 @@ parseSimple p = parseUnpack . runParser (contents p) "<stdin>" . L.strip
 
 parseSimpleString :: Parser a -> String -> Either String a
 parseSimpleString p = parseSimple p . L.pack
+
+runStyxParser :: String -> Parser a -> L.Text -> Either String a
+runStyxParser input p =
+  parseUnpack . runParser (contents p) input . L.strip
 
 -- pItem :: Parser String
 -- pItem = lexeme (takeWhile1P Nothing f) <?> "list item"

@@ -24,8 +24,10 @@ compileFile = do
   case msrc of
     Nothing -> throwError $ FileNotFound fname
     Just src -> do
-      inIO $ L.putStrLn $ L.pack $ "Compiling " ++ fname
-      inIO $ L.putStrLn src
+      case parseModule fname src of
+        Right mod ->
+          inIO $ L.putStrLn $ L.pack $ show mod
+        Left s -> throwError $ ParseError s
 
 compileLine :: CompilerM ()
 compileLine = do
