@@ -14,14 +14,16 @@ type Constr = Name
 
 data Expr
   = EApp Expr Expr               -- a b
+  | EInApp Expr Expr             -- a + b
+  | EPreApp Expr Expr            -- !a
   | EVar Name                    -- x
   | ELam Name Expr               -- \x -> y
   | EAss Name Expr               -- x = a
   | ELit Literal                 -- 2, "hello"
   | EIf Expr Expr Expr           -- if x then tr else fl
   | EAnn Expr Type               -- (x : Int)
-  | EBinaryOp BinaryOp Expr Expr           -- a + b
-  | EUnaryOp UnaryOp Expr                 -- !a
+  | EBinaryOp BinaryOp Expr Expr -- a + b
+  | EUnaryOp UnaryOp Expr        -- !a
   deriving (Eq, Show)
 
 data Literal

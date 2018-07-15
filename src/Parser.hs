@@ -5,7 +5,7 @@ module Parser where
 
 import           Frontend
 import           Lexer
-import           Name
+import           Name                       hiding (prefix)
 import           Type
 
 import           Control.Applicative        (empty)
@@ -85,22 +85,51 @@ pExprApp = do
   e2 <- pExpr
   return $ EApp e1 e2
 
+mkInfix :: L.Text -> Expr -> Expr -> Expr
+mkInfix name =
+  EApp . EInApp (EVar $ Name $ L.unpack name)
+
+mkPrefix :: L.Text -> Expr -> Expr
+mkPrefix name =
+  EPreApp (EVar $ Name $ L.unpack name)
+
+binary :: String -> Operator Parser Expr
+binary name = InfixL (mkInfix <$> symbol name)
+
+prefix :: String -> Operator Parser Expr
+prefix name = Prefix (mkPrefix <$> symbol name)
+
 operators :: [[Operator Parser Expr]]
 operators =
-  [ [ Prefix ((EUnaryOp $ AUnary Neg) <$ symbol "-")
-    , Prefix ((EUnaryOp $ BUnary Not) <$ symbol "!") ]
-  , [ InfixL ((EBinaryOp $ ABinary Mul) <$ symbol "*")
-    , InfixL ((EBinaryOp $ ABinary Div) <$ symbol "/") ]
-  , [ InfixL ((EBinaryOp $ ABinary Add) <$ symbol "+")
-    , InfixL ((EBinaryOp $ ABinary Sub) <$ symbol "-") ]
-  , [ InfixL ((EBinaryOp $ RBinary Equal) <$ symbol "==")
-    , InfixL ((EBinaryOp $ RBinary LessThanEqual) <$ symbol "<=")
-    , InfixL ((EBinaryOp $ RBinary LessThan) <$ symbol "<")
-    , InfixL ((EBinaryOp $ RBinary GreaterThanEqual) <$ symbol ">=")
-    , InfixL ((EBinaryOp $ RBinary GreaterThan) <$ symbol ">") ]
-  , [ InfixL ((EBinaryOp $ BBinary And) <$ symbol "&&") ]
-  , [ InfixL ((EBinaryOp $ BBinary Or) <$ symbol "||") ]
-  ]
+  [ [ prefix "-"
+    , prefix "!" ]
+  , [ binary "*"
+    , binary "/" ]
+  , [ binary "+"
+    , binary "-" ]
+  , [ binary "=="
+    , binary "<="
+    , binary ">="
+    , binary "<"
+    , binary ">" ]
+  , [ binary "&&" ]
+  , [ binary "||" ]]
+
+-- operators =
+--   [ [ Prefix ((EUnaryOp $ AUnary Neg) <$ symbol "-")
+--     , Prefix ((EUnaryOp $ BUnary Not) <$ symbol "!") ]
+--   , [ InfixL ((EBinaryOp $ ABinary Mul) <$ symbol "*")
+--     , InfixL ((EBinaryOp $ ABinary Div) <$ symbol "/") ]
+--   , [ InfixL ((EBinaryOp $ ABinary Add) <$ symbol "+")
+--     , InfixL ((EBinaryOp $ ABinary Sub) <$ symbol "-") ]
+--   , [ InfixL ((EBinaryOp $ RBinary Equal) <$ symbol "==")
+--     , InfixL ((EBinaryOp $ RBinary LessThanEqual) <$ symbol "<=")
+--     , InfixL ((EBinaryOp $ RBinary LessThan) <$ symbol "<")
+--     , InfixL ((EBinaryOp $ RBinary GreaterThanEqual) <$ symbol ">=")
+--     , InfixL ((EBinaryOp $ RBinary GreaterThan) <$ symbol ">") ]
+--   , [ InfixL ((EBinaryOp $ BBinary And) <$ symbol "&&") ]
+--   , [ InfixL ((EBinaryOp $ BBinary Or) <$ symbol "||") ]
+--   ]
 
 aexpr :: Parser Expr
 aexpr = do

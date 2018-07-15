@@ -79,97 +79,130 @@ spec = do
       it "assignment to arithmetic" $
         parseSimple pExpr "x = a * 3" `shouldBe` (Right $ EAss
                                                  (Name "x")
-                                                 (EBinaryOp (ABinary Mul) (EVar $ Name "a") (ELit $ LitInt 3)))
+                                                 (EApp
+                                                   (EInApp
+                                                     (EVar $ Name "*")
+                                                     (EVar $ Name "a"))
+                                                   (ELit $ LitInt 3)))
 
     describe "Operators" $ do
       it "unary negation" $
-        parseSimple pExpr "-a" `shouldBe` (Right $ EUnaryOp
-                                          (AUnary Neg)
+        parseSimple pExpr "-a" `shouldBe` (Right $ EPreApp
+                                          (EVar $ Name "-")
                                           (EVar $ Name "a"))
 
       it "unary not" $
-        parseSimple pExpr "!a" `shouldBe` (Right $ EUnaryOp
-                                          (BUnary Not)
+        parseSimple pExpr "!a" `shouldBe` (Right $ EPreApp
+                                          (EVar $ Name "!")
                                           (EVar $ Name "a"))
 
       it "addition" $
-        parseSimple pExpr "1 + 2" `shouldBe` (Right $ EBinaryOp
-                                             (ABinary Add)
-                                             (ELit $ LitInt 1)
+        parseSimple pExpr "1 + 2" `shouldBe` (Right $ EApp
+                                             (EInApp
+                                              (EVar $ Name "+")
+                                              (ELit $ LitInt 1))
                                              (ELit $ LitInt 2))
 
       it "subtraction" $
-        parseSimple pExpr "1 - 2" `shouldBe` (Right $ EBinaryOp
-                                             (ABinary Sub)
-                                             (ELit $ LitInt 1)
+        parseSimple pExpr "1 - 2" `shouldBe` (Right $ EApp
+                                             (EInApp
+                                               (EVar $ Name "-")
+                                               (ELit $ LitInt 1))
                                              (ELit $ LitInt 2))
+
       it "multiplication" $
-        parseSimple pExpr "1 * 2" `shouldBe` (Right $ EBinaryOp
-                                             (ABinary Mul)
-                                             (ELit $ LitInt 1)
+        parseSimple pExpr "1 * 2" `shouldBe` (Right $ EApp
+                                             (EInApp
+                                               (EVar $ Name "*")
+                                               (ELit $ LitInt 1))
                                              (ELit $ LitInt 2))
 
       it "division" $
-        parseSimple pExpr "1 / 2" `shouldBe` (Right $ EBinaryOp
-                                             (ABinary Div)
-                                             (ELit $ LitInt 1)
+        parseSimple pExpr "1 / 2" `shouldBe` (Right $ EApp
+                                             (EInApp
+                                               (EVar $ Name "/")
+                                               (ELit $ LitInt 1))
                                              (ELit $ LitInt 2))
 
       it "equal" $
-        parseSimple pExpr "1 == 2" `shouldBe` (Right $ EBinaryOp
-                                              (RBinary Equal)
-                                              (ELit $ LitInt 1)
+        parseSimple pExpr "1 == 2" `shouldBe` (Right $ EApp
+                                              (EInApp
+                                                (EVar $ Name "==")
+                                                (ELit $ LitInt 1))
                                               (ELit $ LitInt 2))
 
       it "less than" $
-        parseSimple pExpr "1 < 2" `shouldBe` (Right $ EBinaryOp
-                                             (RBinary LessThan)
-                                             (ELit $ LitInt 1)
+        parseSimple pExpr "1 < 2" `shouldBe` (Right $ EApp
+                                             (EInApp
+                                               (EVar $ Name "<")
+                                               (ELit $ LitInt 1))
                                              (ELit $ LitInt 2))
 
       it "greater than" $
-        parseSimple pExpr "1 > 2" `shouldBe` (Right $ EBinaryOp
-                                              (RBinary GreaterThan)
-                                              (ELit $ LitInt 1)
-                                              (ELit $ LitInt 2))
+        parseSimple pExpr "1 > 2" `shouldBe` (Right $ EApp
+                                             (EInApp
+                                               (EVar $ Name ">")
+                                               (ELit $ LitInt 1))
+                                             (ELit $ LitInt 2))
 
       it "less than equal" $
-        parseSimple pExpr "1 <= 2" `shouldBe` (Right $ EBinaryOp
-                                              (RBinary LessThanEqual)
-                                              (ELit $ LitInt 1)
+        parseSimple pExpr "1 <= 2" `shouldBe` (Right $ EApp
+                                              (EInApp
+                                                (EVar $ Name "<=")
+                                                (ELit $ LitInt 1))
                                               (ELit $ LitInt 2))
 
       it "greater than equal" $
-        parseSimple pExpr "1 >= 2" `shouldBe` (Right $ EBinaryOp
-                                              (RBinary GreaterThanEqual)
-                                              (ELit $ LitInt 1)
+        parseSimple pExpr "1 >= 2" `shouldBe` (Right $ EApp
+                                              (EInApp
+                                                (EVar $ Name ">=")
+                                                (ELit $ LitInt 1))
                                               (ELit $ LitInt 2))
 
       it "and" $
-        parseSimple pExpr "false && true" `shouldBe` (Right $ EBinaryOp
-                                                     (BBinary And)
-                                                     (ELit $ LitBool False)
+        parseSimple pExpr "false && true" `shouldBe` (Right $ EApp
+                                                     (EInApp
+                                                       (EVar $ Name "&&")
+                                                       (ELit $ LitBool False))
                                                      (ELit $ LitBool True))
 
       it "or" $
-        parseSimple pExpr "false || true" `shouldBe` (Right $ EBinaryOp
-                                                     (BBinary Or)
-                                                     (ELit $ LitBool False)
+        parseSimple pExpr "false || true" `shouldBe` (Right $ EApp
+                                                     (EInApp
+                                                       (EVar $ Name "||")
+                                                       (ELit $ LitBool False))
                                                      (ELit $ LitBool True))
       it "arithmetic presedence" $
-        parseSimple pExpr "4 * -3 - 2 / 5" `shouldBe` (Right $ EBinaryOp
-                                                       (ABinary Sub)
-                                                       (EBinaryOp (ABinary Mul)
-                                                         (ELit (LitInt 4))
-                                                         (EUnaryOp (AUnary Neg) (ELit (LitInt 3))))
-                                                       (EBinaryOp (ABinary Div) (ELit (LitInt 2)) (ELit (LitInt 5))))
+        parseSimple pExpr "4 * -3 - 2 / 5" `shouldBe` (Right $ EApp
+                                                      (EInApp
+                                                        (EVar (Name "-"))
+                                                        (EApp
+                                                          (EInApp
+                                                            (EVar (Name "*"))
+                                                            (ELit (LitInt 4)))
+                                                          (EPreApp
+                                                            (EVar (Name "-"))
+                                                            (ELit (LitInt 3)))))
+                                                        (EApp
+                                                          (EInApp
+                                                            (EVar (Name "/"))
+                                                            (ELit (LitInt 2)))
+                                                          (ELit (LitInt 5))))
+
       it "binary presedence" $
-        parseSimple pExpr "false && !true || false" `shouldBe` (Right $ EBinaryOp
-                                                               (BBinary Or)
-                                                               (EBinaryOp (BBinary And)
-                                                                 (ELit (LitBool False))
-                                                                 (EUnaryOp (BUnary Not) (ELit (LitBool True))))
-                                                                (ELit (LitBool False)))
+        parseSimple pExpr "false && !true || false" `shouldBe` (Right $ EApp
+                                                               (EInApp
+                                                                 (EVar (Name "||"))
+                                                                 (EApp
+                                                                   (EInApp
+                                                                     (EVar (Name "&&"))
+                                                                     (ELit (LitBool False)))
+                                                                   (EPreApp
+                                                                     (EVar (Name "!"))
+                                                                     (ELit (LitBool True)))))
+                                                                 (ELit (LitBool False)))
+
+    describe "Application" $ do
       it "single application" $
         parseSimple pExpr "x y" `shouldBe` (Right $ EApp (EVar $ Name "x") (EVar $ Name "y"))
 
@@ -183,9 +216,8 @@ spec = do
         parseSimple pExpr "(3)" `shouldBe` (Right $ ELit $ LitInt 3)
 
       it "parens arithmetic" $
-        parseSimple pExpr "(a + 3)" `shouldBe` (Right $ EBinaryOp
-                                               (ABinary Add)
-                                               (EVar $ Name "a")
+        parseSimple pExpr "(a + 3)" `shouldBe` (Right $ EApp
+                                               (EInApp (EVar $ Name "+") (EVar $ Name "a"))
                                                (ELit $ LitInt 3))
 
   describe "Patterns" $ do
