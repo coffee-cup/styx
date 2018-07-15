@@ -206,18 +206,18 @@ spec = do
     it "no patterns" $
       parseSimple pDecl "fn = 3" `shouldBe` (Right $ FunDecl $ BindGroup
                                                  (Name "fn")
-                                                 [Match [] (ELit $ LitInt 3)]
+                                                 [Match [] [(ELit $ LitInt 3)]]
                                                  Nothing)
     it "one simple pattern" $
       parseSimple pDecl "fn 3 = 3" `shouldBe` (Right $ FunDecl $ BindGroup
                                                     (Name "fn")
-                                                    [(Match [PLit $ LitInt 3] (ELit $ LitInt 3))]
+                                                    [(Match [PLit $ LitInt 3] [(ELit $ LitInt 3)])]
                                                     Nothing)
 
     it "two simple patterns" $
       parseSimple pDecl "fn f 2 = 3" `shouldBe` (Right $ FunDecl $ BindGroup
                                                      (Name "fn")
-                                                     [(Match [PVar $ Name "f", PLit $ LitInt 2] (ELit $ LitInt 3))]
+                                                     [(Match [PVar $ Name "f", PLit $ LitInt 2] [(ELit $ LitInt 3)])]
                                                      Nothing)
 
     it "complex constructor pattern" $
@@ -229,20 +229,32 @@ spec = do
                                                                          PWild,
                                                                          PCon (Name "Hello") [PVar $ Name "b"],
                                                                          PCon (Name "World") [PLit $ LitDouble 1.1, PWild]]
-                                                                     (EVar $ Name "x"))]
+                                                                     [(EVar $ Name "x")])]
                                                                       Nothing)
 
     it "const function" $
       parseSimpleFile pDecl (testFile "fundecl1") `shouldBe` (Right $ FunDecl $ BindGroup
                                                                 (Name "const")
-                                                                [(Match [PVar $ Name "x", PVar $ Name "y"] (ELit $ LitInt 3))]
+                                                                [(Match [PVar $ Name "x", PVar $ Name "y"] [(ELit $ LitInt 3)])]
                                                                 Nothing)
+
   describe "Function Decls Double Line" $ do
     it "no patterns" $
-      parseSimpleFile pDecl (testFile "fundecl2") `shouldBe` (Right $ FunDecl $ BindGroup
-                                                             (Name "fn")
-                                                             [(Match [] (ELit $ LitInt 3))]
+      parseSimpleUnlines pDecl ["f =", "  3"] `shouldBe` (Right $ FunDecl $ BindGroup
+                                                             (Name "f")
+                                                             [(Match [] [(ELit $ LitInt 3)])]
                                                              Nothing)
+
+    it "complex patterns" $
+      parseSimpleUnlines pDecl ["test (Con 1 _ x) _ = ",
+                                 "  x",
+                                 "  1"] `shouldBe` (Right $ FunDecl $ BindGroup
+                                                    (Name "test")
+                                                    [Match [
+                                                        PCon (Name "Con") [PLit $ LitInt 1, PWild, PVar $ Name "x"],
+                                                        PWild]
+                                                    [EVar $ Name "x", ELit $ LitInt 1]]
+                                                    Nothing)
 
 -- testParseDecls :: IO ()
 -- testParseDecls = do
@@ -252,6 +264,10 @@ spec = do
 
 testFile :: String -> FilePath
 testFile s = "test/examples/" ++ s ++ ".yx"
+
+parseSimpleUnlines :: Parser a -> [String] -> Either String a
+parseSimpleUnlines p =
+  parseSimple p . L.pack . unlines
 
 parseSimpleFile :: Parser a -> FilePath -> Either String a
 parseSimpleFile p f =

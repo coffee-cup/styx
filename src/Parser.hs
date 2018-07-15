@@ -135,7 +135,7 @@ mkBind :: Name -> Maybe Type -> Match -> BindGroup
 mkBind n t m = BindGroup n [m] t
 
 pBindGroup :: Parser BindGroup
-pBindGroup = try singleLine <|> multiLine 
+pBindGroup = try singleLine <|> multiLine
   where
     singleLine = do
       name <- pName
@@ -152,7 +152,7 @@ pBindGroup = try singleLine <|> multiLine
       return (L.IndentMany Nothing (
                  return
                  . mkBind name Nothing -- BindGroup
-                 . Match pats) pExpr)         -- Match
+                 . Match pats) pExpr)  -- Match
 
 pFunctionDecl :: Parser Decl
 pFunctionDecl = FunDecl <$> pBindGroup
