@@ -32,7 +32,7 @@ compileFile = do
 compileLine :: CompilerM ()
 compileLine = do
   Just text <- gets _src
-  parseText text
+  ast <- parseText text
   return ()
   -- inIO $ L.putStrLn "Compiling a line"
   -- inIO $ L.putStrLn text
