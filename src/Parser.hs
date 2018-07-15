@@ -6,6 +6,7 @@ module Parser where
 import           Frontend
 import           Lexer
 import           Name
+import           Type
 
 import           Control.Applicative        (empty)
 import           Control.Monad              (void)
@@ -128,28 +129,33 @@ pPattern = pPatternLit
   <|> pPatternConstr
   <|> (lexeme . parens) pPattern
 
--- Matches
-
-pMatch :: Char -> Parser Match
-pMatch sep = do
-  pats <- pPattern `sepBy` sc
-  _ <-  lexeme $ char sep
-  expr <- pExpr
-  return $ Match pats expr
-
 -- Functions
 
+mkBind :: Name -> Maybe Type -> Match -> BindGroup
+mkBind n t m = BindGroup n [m] t
+
 pBindGroup :: Parser BindGroup
-pBindGroup = do
-  name <- lowerIdentifier
-  match <- pMatch '='
-  return $ BindGroup (Name name) [match] Nothing
+pBindGroup = try singleLine <|> multiLine 
+  where
+    singleLine = do
+      name <- pName
+      pats <- patterns
+      _ <- symbol "="
+      expr <- pExpr
+      return $ mkBind name Nothing $ Match pats [expr]
+    multiLine = L.indentBlock scn p
+    patterns = pPattern `sepBy` sc
+    p = do
+      name <- pName
+      pats <- patterns
+      _ <- symbol "="
+      return (L.IndentMany Nothing (
+                 return
+                 . mkBind name Nothing -- BindGroup
+                 . Match pats) pExpr)         -- Match
 
 pFunctionDecl :: Parser Decl
 pFunctionDecl = FunDecl <$> pBindGroup
--- pFunctionDecl = do
---   bind <- pBindGroup
---   return $ FunDecl bind
 
 -- Declarations
 
@@ -200,7 +206,7 @@ parseSimpleString p = parseSimple p . L.pack
 -- pLineFold = L.lineFold scn $ \sc' ->
 --   let ps = takeWhile1P Nothing f `sepBy1` try sc'
 --       f x = isAlphaNum x || x == '-'
---   in unwords <$> ps <* sc
+--   in Prelude.unwords <$> ps <* sc
 
 -- pItemList :: Parser (String, [(String, [String])])
 -- pItemList = L.nonIndented scn (L.indentBlock scn p)

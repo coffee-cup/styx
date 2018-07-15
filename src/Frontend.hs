@@ -40,7 +40,7 @@ data BindGroup = BindGroup
 
 data Match = Match
   { _matchPat  :: [Pattern]
-  , _matchBody :: Expr
+  , _matchBody :: [Expr]
   } deriving (Eq, Show)
 
 data Pattern
