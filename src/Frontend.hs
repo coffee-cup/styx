@@ -22,8 +22,6 @@ data Expr
   | ELit Literal                 -- 2, "hello"
   | EIf Expr Expr Expr           -- if x then tr else fl
   | EAnn Expr Type               -- (x : Int)
-  | EBinaryOp BinaryOp Expr Expr -- a + b
-  | EUnaryOp UnaryOp Expr        -- !a
   deriving (Eq, Show)
 
 data Literal
@@ -61,39 +59,4 @@ data Decl
   deriving (Eq, Show)
 
 data Module = Module Name [Decl] -- module T
-  deriving (Eq, Show)
-
-data BinaryOp
-  = BBinary BBinOp               -- binary
-  | RBinary RBinOp               -- relational
-  | ABinary ABinOp               -- arithmetic
-  deriving (Eq, Show)
-
-data UnaryOp
-  = BUnary BUnOp                 -- binary
-  | AUnary AUnOp                 -- arithmetic
-  deriving (Eq, Show)
-
-data BBinOp = And | Or
-  deriving (Eq, Show)
-
-data RBinOp
-   = Equal
-  | LessThan
-  | LessThanEqual
-  | GreaterThan
-  | GreaterThanEqual
-  deriving (Eq, Show)
-
-data ABinOp
-  = Add
-  | Sub
-  | Mul
-  | Div
-  deriving (Eq, Show)
-
-data BUnOp = Not
-  deriving (Eq, Show)
-
-data AUnOp = Neg
   deriving (Eq, Show)

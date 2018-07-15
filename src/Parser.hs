@@ -115,22 +115,6 @@ operators =
   , [ binary "&&" ]
   , [ binary "||" ]]
 
--- operators =
---   [ [ Prefix ((EUnaryOp $ AUnary Neg) <$ symbol "-")
---     , Prefix ((EUnaryOp $ BUnary Not) <$ symbol "!") ]
---   , [ InfixL ((EBinaryOp $ ABinary Mul) <$ symbol "*")
---     , InfixL ((EBinaryOp $ ABinary Div) <$ symbol "/") ]
---   , [ InfixL ((EBinaryOp $ ABinary Add) <$ symbol "+")
---     , InfixL ((EBinaryOp $ ABinary Sub) <$ symbol "-") ]
---   , [ InfixL ((EBinaryOp $ RBinary Equal) <$ symbol "==")
---     , InfixL ((EBinaryOp $ RBinary LessThanEqual) <$ symbol "<=")
---     , InfixL ((EBinaryOp $ RBinary LessThan) <$ symbol "<")
---     , InfixL ((EBinaryOp $ RBinary GreaterThanEqual) <$ symbol ">=")
---     , InfixL ((EBinaryOp $ RBinary GreaterThan) <$ symbol ">") ]
---   , [ InfixL ((EBinaryOp $ BBinary And) <$ symbol "&&") ]
---   , [ InfixL ((EBinaryOp $ BBinary Or) <$ symbol "||") ]
---   ]
-
 aexpr :: Parser Expr
 aexpr = do
   r <- some $ choice [ parens pExpr
