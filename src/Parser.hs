@@ -79,6 +79,12 @@ pExprAss = do
   expr <- pExpr
   return $ EAss name expr
 
+pExprApp :: Parser Expr
+pExprApp = do
+  e1 <- pExpr
+  e2 <- pExpr
+  return $ EApp e1 e2
+
 operators :: [[Operator Parser Expr]]
 operators =
   [ [ Prefix ((EUnaryOp $ AUnary Neg) <$ symbol "-")
@@ -96,14 +102,17 @@ operators =
   , [ InfixL ((EBinaryOp $ BBinary Or) <$ symbol "||") ]
   ]
 
-atom :: Parser Expr
-atom = pExprLiteral
-  <|> try pExprAss
-  <|> pExprVar
-  <|> parens pExpr
+aexpr :: Parser Expr
+aexpr = do
+  r <- some $ choice [ parens pExpr
+                     , pExprLiteral
+                     , pExprVar
+                     ]
+  return $ Prelude.foldl1 EApp r
 
 pExpr :: Parser Expr
-pExpr = makeExprParser atom operators
+pExpr = try pExprAss
+  <|> makeExprParser aexpr operators
 
 -- Patterns
 

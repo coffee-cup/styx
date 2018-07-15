@@ -170,6 +170,13 @@ spec = do
                                                                  (ELit (LitBool False))
                                                                  (EUnaryOp (BUnary Not) (ELit (LitBool True))))
                                                                 (ELit (LitBool False)))
+      it "single application" $
+        parseSimple pExpr "x y" `shouldBe` (Right $ EApp (EVar $ Name "x") (EVar $ Name "y"))
+
+      it "multiple application" $
+        parseSimple pExpr "x y z" `shouldBe` (Right $ EApp
+                                             (EApp (EVar $ Name "x") (EVar $ Name "y"))
+                                             (EVar $ Name "z"))
 
     describe "Parens" $ do
       it "parens literal" $
