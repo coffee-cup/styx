@@ -16,6 +16,13 @@ import           Test.Hspec.Expectations.Contrib
 
 spec :: Spec
 spec = do
+  describe "Comments" $ do
+    it "ignores comment" $ do
+      parseSimpleUnlines pDecl ["f = # c1", "# c2", "  3 # c3"] `shouldBe` (Right $ FunDecl $ BindGroup
+                                                             (Name "f")
+                                                             [(Match [] [(ELit $ LitInt 3)])]
+                                                             Nothing)
+
   describe "Literals" $ do
     it "integer" $
       parseSimple pLiteral "1" `shouldBe` (Right $ LitInt 1)
@@ -255,65 +262,78 @@ spec = do
       parseSimple pPattern "Hello _ 2.3" `shouldBe` (Right $ PCon (Name "Hello")
                                                      [PWild, PLit $ LitDouble 2.3])
 
-  describe "Function Decls Single Line" $ do
-    it "no patterns" $
-      parseSimple pDecl "fn = 3" `shouldBe` (Right $ FunDecl $ BindGroup
-                                                 (Name "fn")
-                                                 [Match [] [(ELit $ LitInt 3)]]
-                                                 Nothing)
-    it "one simple pattern" $
-      parseSimple pDecl "fn 3 = 3" `shouldBe` (Right $ FunDecl $ BindGroup
-                                                    (Name "fn")
-                                                    [(Match [PLit $ LitInt 3] [(ELit $ LitInt 3)])]
-                                                    Nothing)
-
-    it "two simple patterns" $
-      parseSimple pDecl "fn f 2 = 3" `shouldBe` (Right $ FunDecl $ BindGroup
+  describe "Function Decls" $ do
+   describe "Function Decls Single Line" $ do
+     it "no patterns" $
+       parseSimple pDecl "fn = 3" `shouldBe` (Right $ FunDecl $ BindGroup
+                                                  (Name "fn")
+                                                  [Match [] [(ELit $ LitInt 3)]]
+                                                  Nothing)
+     it "one simple pattern" $
+       parseSimple pDecl "fn 3 = 3" `shouldBe` (Right $ FunDecl $ BindGroup
                                                      (Name "fn")
-                                                     [(Match [PVar $ Name "f", PLit $ LitInt 2] [(ELit $ LitInt 3)])]
+                                                     [(Match [PLit $ LitInt 3] [(ELit $ LitInt 3)])]
                                                      Nothing)
 
-    it "complex constructor pattern" $
-      parseSimple pDecl "fn f 2 _ (Hello b) (World 1.1 _) = x" `shouldBe` (Right $ FunDecl $ BindGroup
-                                                                    (Name "fn")
-                                                                    [(Match [
-                                                                         PVar $ Name "f",
-                                                                         PLit $ LitInt 2,
-                                                                         PWild,
-                                                                         PCon (Name "Hello") [PVar $ Name "b"],
-                                                                         PCon (Name "World") [PLit $ LitDouble 1.1, PWild]]
-                                                                     [(EVar $ Name "x")])]
-                                                                      Nothing)
+     it "two simple patterns" $
+       parseSimple pDecl "fn f 2 = 3" `shouldBe` (Right $ FunDecl $ BindGroup
+                                                      (Name "fn")
+                                                      [(Match [PVar $ Name "f", PLit $ LitInt 2] [(ELit $ LitInt 3)])]
+                                                      Nothing)
 
-    it "const function" $
-      parseSimpleFile pDecl (testFile "fundecl1") `shouldBe` (Right $ FunDecl $ BindGroup
-                                                                (Name "const")
-                                                                [(Match [PVar $ Name "x", PVar $ Name "y"] [(ELit $ LitInt 3)])]
-                                                                Nothing)
+     it "complex constructor pattern" $
+       parseSimple pDecl "fn f 2 _ (Hello b) (World 1.1 _) = x" `shouldBe` (Right $ FunDecl $ BindGroup
+                                                                     (Name "fn")
+                                                                     [(Match [
+                                                                          PVar $ Name "f",
+                                                                          PLit $ LitInt 2,
+                                                                          PWild,
+                                                                          PCon (Name "Hello") [PVar $ Name "b"],
+                                                                          PCon (Name "World") [PLit $ LitDouble 1.1, PWild]]
+                                                                      [(EVar $ Name "x")])]
+                                                                       Nothing)
 
-  describe "Function Decls Double Line" $ do
-    it "no patterns" $
-      parseSimpleUnlines pDecl ["f =", "  3"] `shouldBe` (Right $ FunDecl $ BindGroup
-                                                             (Name "f")
-                                                             [(Match [] [(ELit $ LitInt 3)])]
-                                                             Nothing)
+     it "const function" $
+       parseSimpleFile pDecl (testFile "fundecl1") `shouldBe` (Right $ FunDecl $ BindGroup
+                                                                 (Name "const")
+                                                                 [(Match [PVar $ Name "x", PVar $ Name "y"] [(ELit $ LitInt 3)])]
+                                                                 Nothing)
 
-    it "complex patterns" $
-      parseSimpleUnlines pDecl ["test (Con 1 _ x) _ = ",
-                                 "  x",
-                                 "  1"] `shouldBe` (Right $ FunDecl $ BindGroup
-                                                    (Name "test")
-                                                    [Match [
-                                                        PCon (Name "Con") [PLit $ LitInt 1, PWild, PVar $ Name "x"],
-                                                        PWild]
-                                                    [EVar $ Name "x", ELit $ LitInt 1]]
-                                                    Nothing)
+   describe "Function Decls Double Line" $ do
+     it "no patterns" $
+       parseSimpleUnlines pDecl ["f =", "  3"] `shouldBe` (Right $ FunDecl $ BindGroup
+                                                              (Name "f")
+                                                              [(Match [] [(ELit $ LitInt 3)])]
+                                                              Nothing)
 
--- testParseDecls :: IO ()
--- testParseDecls = do
---   describe "Declarations should not be indented" $ do
---     it "Function errors when idented" $
---       isLeft $ parseSimple pDecl "  f = 3"
+     it "complex patterns" $
+       parseSimpleUnlines pDecl ["test (Con 1 _ x) _ = ",
+                                  "  x",
+                                  "  1"] `shouldBe` (Right $ FunDecl $ BindGroup
+                                                     (Name "test")
+                                                     [Match [
+                                                         PCon (Name "Con") [PLit $ LitInt 1, PWild, PVar $ Name "x"],
+                                                         PWild]
+                                                     [EVar $ Name "x", ELit $ LitInt 1]]
+                                                     Nothing)
+
+  describe "Module" $ do
+    it "empty module" $
+      parseSimple pModule "module Test" `shouldBe` (Right $ Module (Name "Test") [])
+
+    it "module with declartions" $
+      parseSimpleUnlines pModule ["module Test", "f _ = x"] `shouldBe` (Right $ Module
+                                                                       (Name "Test")
+                                                                       [FunDecl $ BindGroup (Name "f")
+                                                                         [Match [PWild] [EVar $ Name "x"]]
+                                                                       Nothing ])
+
+    it "invalid module name" $
+      isLeft $ parseSimple pModule "module test"
+
+    it "reject indented declarations" $
+      isLeft $ parseSimpleUnlines pModule ["module Test", "  f = x"]
+
 
 testFile :: String -> FilePath
 testFile s = "test/examples/" ++ s ++ ".yx"
