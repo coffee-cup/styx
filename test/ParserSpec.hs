@@ -85,6 +85,20 @@ spec = do
                                                      (EVar $ Name "a"))
                                                    (ELit $ LitInt 3)))
 
+    describe "Lambda" $ do
+      it "single line, single param" $
+        parseSimple pExpr "\\x -> y" `shouldBe` (Right $ ELam
+                                               [Name "x"] [EVar $ Name "y"])
+
+      it "single line, multi param" $
+        parseSimple pExpr "\\x y -> x" `shouldBe` (Right $ ELam
+                                                  [Name "x", Name "y"] [EVar $ Name "x"])
+
+      it "multi line, multi param" $
+        parseSimpleUnlines pExpr ["\\x y ->", "  1", "  y"] `shouldBe` (Right $ ELam
+                                                                       [Name "x", Name "y"]
+                                                                       [ELit $ LitInt 1, EVar $ Name "y"])
+
     describe "Operators" $ do
       it "unary negation" $
         parseSimple pExpr "-a" `shouldBe` (Right $ EPreApp
