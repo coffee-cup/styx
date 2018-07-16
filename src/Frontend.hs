@@ -20,7 +20,7 @@ data Expr
   | ELam [Name] [Expr]           -- \x -> y
   | EAss Name Expr               -- x = a
   | ELit Literal                 -- 2, "hello"
-  | EIf Expr Expr Expr           -- if x then tr else fl
+  | EIf Expr [Expr] [Expr]       -- if x then tr else fl
   | EAnn Expr Type               -- (x : Int)
   | EParens Expr                 -- (a)
   deriving (Eq, Show)

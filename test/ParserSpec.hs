@@ -106,6 +106,26 @@ spec = do
                                                                        [Name "x", Name "y"]
                                                                        [ELit $ LitInt 1, EVar $ Name "y"])
 
+    describe "If" $ do
+      it "single line" $
+        parseSimple pExpr "if true then a else b" `shouldBe` (Right $ EIf
+                                                             (ELit $ LitBool True)
+                                                             [EVar $ Name "a"]
+                                                             [EVar $ Name "b"])
+
+      it "multi line" $
+        parseSimpleUnlines pExpr ["if true", "then a", "else b"] `shouldBe` (Right $ EIf
+                                                             (ELit $ LitBool True)
+                                                             [EVar $ Name "a"]
+                                                             [EVar $ Name "b"])
+
+      it "multi line indent" $
+        parseSimpleUnlines pExpr ["if true then", "  a", "  x", "else", "  b", "  z"] `shouldBe` (Right $ EIf
+                                                                                          (ELit $ LitBool True)
+                                                                                          [EVar $ Name "a", EVar $ Name "x"]
+                                                                                          [EVar $ Name "b", EVar $ Name "z"])
+
+
     describe "Operators" $ do
       it "unary negation" $
         parseSimple pExpr "-a" `shouldBe` (Right $ EPreApp

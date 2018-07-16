@@ -81,6 +81,28 @@ pExprLam = withExprBlock p
       _ <- symbol "->"
       return $ return . ELam names
 
+pExprIf :: Parser Expr
+pExprIf = pIfBlock <*> pElseBlock
+
+pIfBlock :: Parser ([Expr] -> Expr)
+pIfBlock = withExprBlock p
+  where
+    p = do
+      rword "if"
+      cond <- pExpr
+      scn
+      -- TODO: Check indentation here to ensure >= rword "if" level
+      rword "then"
+      return $ return . EIf cond
+
+pElseBlock :: Parser [Expr]
+pElseBlock = withExprBlock p
+  where
+    p = do
+      scn
+      rword "else"
+      return return
+
 pExprAss :: Parser Expr
 pExprAss = do
   name <- pName
@@ -138,6 +160,7 @@ aexpr = do
 pExpr :: Parser Expr
 pExpr = try pExprAss
   <|> pExprLam
+  <|> pExprIf
   <|> makeExprParser aexpr operators
 
 -- Patterns
