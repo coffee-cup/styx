@@ -213,10 +213,10 @@ spec = do
 
     describe "Parens" $ do
       it "parens literal" $
-        parseSimple pExpr "(3)" `shouldBe` (Right $ ELit $ LitInt 3)
+        parseSimple pExpr "(3)" `shouldBe` (Right $ EParens $ ELit $ LitInt 3)
 
       it "parens arithmetic" $
-        parseSimple pExpr "(a + 3)" `shouldBe` (Right $ EApp
+        parseSimple pExpr "(a + 3)" `shouldBe` (Right $ EParens $ EApp
                                                (EInApp (EVar $ Name "+") (EVar $ Name "a"))
                                                (ELit $ LitInt 3))
 

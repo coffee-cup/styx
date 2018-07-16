@@ -94,6 +94,9 @@ pExprApp = do
   e2 <- pExpr
   return $ EApp e1 e2
 
+pExprParens :: Parser Expr
+pExprParens = EParens <$> parens pExpr
+
 mkInfix :: L.Text -> Expr -> Expr -> Expr
 mkInfix name =
   EApp . EInApp (EVar $ Name $ L.unpack name)
@@ -126,7 +129,7 @@ operators =
 
 aexpr :: Parser Expr
 aexpr = do
-  r <- some $ choice [ parens pExpr
+  r <- some $ choice [ pExprParens
                      , pExprLiteral
                      , pExprVar
                      ]
