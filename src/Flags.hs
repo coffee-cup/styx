@@ -4,14 +4,14 @@ import           Data.Semigroup      ((<>))
 import           Options.Applicative
 
 data Flags = Flags
-  { dumpTokens :: Bool
-  , dumpFrontend :: Bool
+  { dumpFrontend :: Bool
   } deriving (Eq)
 
 flagMap :: Flags -> [(String, Bool)]
 flagMap Flags
-         { dumpTokens = tokens
-         } = [("ddump-tokens", tokens)]
+         { dumpFrontend = frontend
+         } = [ ("ddump-frontend", frontend)
+             ]
 
 instance Show Flags where
   show flags =
@@ -23,21 +23,17 @@ instance Show Flags where
 
 emptyFlags :: Flags
 emptyFlags = Flags
-  { dumpTokens = True
-  , dumpFrontend = True
+  { dumpFrontend = True
   }
 
 parseFlags :: Parser Flags
 parseFlags = Flags
-  <$> switch (  long "ddump-tokens"
-             <> help "Print tokens to console")
-  <*> switch (  long "ddump-frontend"
+  <$> switch (  long "ddump-frontend"
              <> help "Print frontend AST to console")
 
 setFlag :: String -> Bool -> Flags -> Maybe Flags
 setFlag s b flags =
   case s of
-    "ddump-tokens" -> Just $ flags { dumpTokens = b }
     "ddump-frontend" -> Just $ flags { dumpFrontend = b }
     _              -> Nothing
 

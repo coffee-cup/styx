@@ -104,7 +104,7 @@ quit _ = liftIO exitSuccess
 -- Prefix tab completer
 defaultMatcher :: MonadIO m => [(String, CompletionFunc m)]
 defaultMatcher =
-  [(":load", fileCompleter)
+  [ (":load", fileCompleter)
   ]
 
 -- Default tab completer

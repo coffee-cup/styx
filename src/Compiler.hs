@@ -44,13 +44,6 @@ parseText input = do
   case ast of
     Right ast' -> return ast'
     Left s -> throwError $ ParseError s
-  -- let tokens = parseTokens $ L.unpack input
-  -- ifSet dumpTokens (dumpValues "Tokens" tokens)
-  -- let ast = parseExpr $ L.unpack input
-  -- ifSet dumpFrontend (dumpValues "Frontend" ast)
-  -- case ast of
-  --   Right ast' -> return ast'
-  --   Left s -> throwError $ ParseError s
 
 dumpValues :: Show a => String -> a -> CompilerM ()
 dumpValues header v = do
