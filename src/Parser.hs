@@ -8,9 +8,6 @@ import           Lexer
 import           Name                       hiding (prefix)
 import           Type
 
-import           Control.Applicative        (empty)
-import           Control.Monad              (void)
-import           Data.Char
 import           Data.Text.Lazy             as L
 import           Data.Void
 import           Text.Megaparsec
@@ -63,14 +60,26 @@ pExprLiteral = ELit <$> pLiteral
 pExprVar :: Parser Expr
 pExprVar = EVar <$> pName
 
--- TODO : lam should have list of expressions
+withExprBlock :: Parser ([Expr] -> Parser a) -> Parser a
+withExprBlock p = try singleLine <|> multiLine
+  where
+    singleLine = do
+      f <- p
+      expr <- pExpr
+      f [expr]
+    multiLine = L.indentBlock scn p'
+    p' = do
+      f <- p
+      return $ L.IndentSome Nothing f pExpr
+
 pExprLam :: Parser Expr
-pExprLam = do
-  _ <- symbol  "\\"
-  name <- pName
-  _ <- symbol "->"
-  expr <- pExpr
-  return $ ELam name expr
+pExprLam = withExprBlock p
+  where
+    p = do
+      _ <- symbol "\\"
+      names <- pName `sepBy` sc
+      _ <- symbol "->"
+      return $ return . ELam names
 
 pExprAss :: Parser Expr
 pExprAss = do
@@ -125,6 +134,7 @@ aexpr = do
 
 pExpr :: Parser Expr
 pExpr = try pExprAss
+  <|> pExprLam
   <|> makeExprParser aexpr operators
 
 -- Patterns
@@ -157,24 +167,15 @@ mkBind :: Name -> Maybe Type -> Match -> BindGroup
 mkBind n t m = BindGroup n [m] t
 
 pBindGroup :: Parser BindGroup
-pBindGroup = try singleLine <|> multiLine
+pBindGroup = withExprBlock p
   where
-    singleLine = do
-      name <- pName
-      pats <- patterns
-      _ <- symbol "="
-      expr <- pExpr
-      return $ mkBind name Nothing $ Match pats [expr]
-    multiLine = L.indentBlock scn p
-    patterns = pPattern `sepBy` sc
     p = do
       name <- pName
-      pats <- patterns
+      pats <- pPattern `sepBy` sc
       _ <- symbol "="
-      return (L.IndentMany Nothing (
-                 return
-                 . mkBind name Nothing -- BindGroup
-                 . Match pats) pExpr)  -- Match
+      return (return
+              . mkBind name Nothing
+              . Match pats)
 
 pFunctionDecl :: Parser Decl
 pFunctionDecl = FunDecl <$> pBindGroup
