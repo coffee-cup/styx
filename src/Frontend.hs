@@ -17,7 +17,7 @@ data Expr
   | EInApp Expr Expr             -- a + b
   | EPreApp Expr Expr            -- !a
   | EVar Name                    -- x
-  | ELam Name Expr               -- \x -> y
+  | ELam [Name] [Expr]           -- \x -> y
   | EAss Name Expr               -- x = a
   | ELit Literal                 -- 2, "hello"
   | EIf Expr Expr Expr           -- if x then tr else fl

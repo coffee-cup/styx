@@ -23,10 +23,10 @@ compileFile = do
   msrc <- gets _src
   case msrc of
     Nothing -> throwError $ FileNotFound fname
-    Just src -> do
+    Just src ->
       case parseModule fname src of
-        Right mod ->
-          inIO $ L.putStrLn $ L.pack $ show mod
+        Right mod -> do
+          ifSet dumpFrontend (dumpValues "Frontend" mod)
         Left s -> throwError $ ParseError s
 
 compileLine :: CompilerM ()
@@ -34,8 +34,6 @@ compileLine = do
   Just text <- gets _src
   ast <- parseText text
   return ()
-  -- inIO $ L.putStrLn "Compiling a line"
-  -- inIO $ L.putStrLn text
 
 parseText :: L.Text -> CompilerM Syn.Expr
 parseText input = do

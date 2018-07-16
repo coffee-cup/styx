@@ -57,7 +57,7 @@ runFile compilerState fname = do
   (res, _) <- runCompilerM compileFile updatedState
   case res of
     Left err -> print err
-    Right _  -> TIO.putStrLn "fuck yeah"
+    Right _  -> TIO.putStrLn "\nCompiled"
 
 getFileContents :: FilePath -> IO (Maybe L.Text)
 getFileContents fname = do
