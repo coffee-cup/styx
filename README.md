@@ -9,6 +9,7 @@ Styx is an interpreted (eventually compiled) programming language.
 - Strongly typed
 - Type inferred
 - Abstract data types
+- Pattern matching
 - Function currying
 - Psudeo-assignment (converted interally to lambda application)
 
