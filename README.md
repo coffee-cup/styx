@@ -11,7 +11,6 @@ Styx is an interpreted (eventually compiled) programming language.
 - Abstract data types
 - Function currying
 - Psudeo-assignment (converted interally to lambda application)
-- Immutability
 
 _This is a very large work in progress and does not currently work :D I will be committing a lot of time to this after this semester._
 
@@ -65,16 +64,23 @@ This way all assignment can be type inferred properly. This also means that _ass
 ```haskell
 x = 1
 x = 2
+print x
 ```
 
 is translated to
 
 
 ```haskell
-\x -> \x -> () -- () being a nop
+(\x ->
+  (\x ->
+    print x
+  ) 2
+) 1
 ```
 
-After this language is complete, I may come to regret this design decision. But right now, it is an idea I am trying out with this language.
+The binding x is shadowed in the inner lambda so the value 1 is never used.
+
+After this language is complete, I may come to regret this design decision (I expect compiler optimizations to be difficult). But right now, it is an idea I am trying out with this language.
 
 ## TODO
 
