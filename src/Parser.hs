@@ -18,29 +18,30 @@ import           Text.Megaparsec.Expr
 -- Literal Parsers
 
 pIntLit :: Parser Literal
-pIntLit = LitInt <$> integer
+pIntLit = LitInt <$> integer <?> "integer"
 
 pDoubleLit :: Parser Literal
-pDoubleLit = LitDouble <$> double
+pDoubleLit = LitDouble <$> double <?> "double"
 
 pBoolLit :: Parser Literal
-pBoolLit =
-  (rword "true" >> return (LitBool True))
-  <|> (rword "false" >> return (LitBool False))
+pBoolLit = p <?> "boolean"
+  where
+    p = (rword "true" >> return (LitBool True))
+      <|> (rword "false" >> return (LitBool False))
 
 pCharLit :: Parser Literal
 pCharLit = do
   _ <- char '\''
   c <- anyChar
   _ <- char '\''
-  return $ LitChar c
+  (return $ LitChar c) <?> "char"
 
 pStringLit :: Parser Literal
 pStringLit = do
   _ <- char '"'
   x <- many $ escapedChars <|> noneOf ("\"\\" :: String)
   _ <- char '"'
-  return $ LitString x
+  (return $ LitString x) <?> "string"
 
 pLiteral :: Parser Literal
 pLiteral = try pDoubleLit
@@ -55,10 +56,10 @@ pName :: Parser Name
 pName = Name <$> lowerIdentifier
 
 pExprLiteral :: Parser Expr
-pExprLiteral = ELit <$> pLiteral
+pExprLiteral = ELit <$> pLiteral <?> "literal"
 
 pExprVar :: Parser Expr
-pExprVar = EVar <$> pName
+pExprVar = EVar <$> pName <?> "variable"
 
 withExprBlock :: Parser ([Expr] -> Parser a) -> Parser a
 withExprBlock p = try singleLine <|> multiLine
@@ -73,7 +74,7 @@ withExprBlock p = try singleLine <|> multiLine
       return $ L.IndentSome Nothing f pExpr
 
 pExprLam :: Parser Expr
-pExprLam = withExprBlock p
+pExprLam = withExprBlock (p <?> "lambda")
   where
     p = do
       _ <- symbol "\\"
@@ -82,10 +83,10 @@ pExprLam = withExprBlock p
       return $ return . ELam names
 
 pExprIf :: Parser Expr
-pExprIf = pIfBlock <*> pElseBlock
+pExprIf = pIfBlock <*> pElseBlock <?> "if expression"
 
 pIfBlock :: Parser ([Expr] -> Expr)
-pIfBlock = withExprBlock p
+pIfBlock = withExprBlock (p <?> "if block")
   where
     p = do
       rword "if"
@@ -96,7 +97,7 @@ pIfBlock = withExprBlock p
       return $ return . EIf cond
 
 pElseBlock :: Parser [Expr]
-pElseBlock = withExprBlock p
+pElseBlock = withExprBlock (p <?> "else block")
   where
     p = do
       scn
@@ -104,20 +105,24 @@ pElseBlock = withExprBlock p
       return return
 
 pExprAss :: Parser Expr
-pExprAss = do
-  name <- pName
-  _ <- symbol "="
-  expr <- pExpr
-  return $ EAss name expr
+pExprAss = p <?> "assignment"
+  where
+    p = do
+      name <- pName
+      _ <- symbol "="
+      expr <- pExpr
+      return $ EAss name expr
 
 pExprApp :: Parser Expr
-pExprApp = do
-  e1 <- pExpr
-  e2 <- pExpr
-  return $ EApp e1 e2
+pExprApp = p <?> "application"
+  where
+    p = do
+      e1 <- pExpr
+      e2 <- pExpr
+      return $ EApp e1 e2
 
 pExprParens :: Parser Expr
-pExprParens = EParens <$> parens pExpr
+pExprParens = EParens <$> parens pExpr <?> "parens"
 
 mkInfix :: L.Text -> Expr -> Expr -> Expr
 mkInfix name =
@@ -175,10 +180,10 @@ pPatternConstr :: Parser Pattern
 pPatternConstr = do
   name <- upperIdentifier
   vars <- pPattern `sepBy` sc
-  return $ PCon (Name name) vars
+  (return $ PCon (Name name) vars) <?> "type constructor"
 
 pPatternWild :: Parser Pattern
-pPatternWild = symbol "_" >> return PWild
+pPatternWild = symbol "_" >> (return PWild) <?> "wildcard"
 
 pPattern :: Parser Pattern
 pPattern = pPatternLit
@@ -204,7 +209,7 @@ pBindGroup = withExprBlock p
               . Match pats)
 
 pFunctionDecl :: Parser Decl
-pFunctionDecl = FunDecl <$> pBindGroup
+pFunctionDecl = FunDecl <$> pBindGroup <?> "function declaration"
 
 -- Declarations
 
@@ -214,7 +219,7 @@ pDecl = L.nonIndented scn pFunctionDecl
 -- Module Parser
 
 pModule :: Parser Module
-pModule = L.nonIndented scn p
+pModule = L.nonIndented scn (p <?> "module definition")
   where
     p = do
       rword "module"
