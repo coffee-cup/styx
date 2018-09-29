@@ -168,6 +168,32 @@ pExpr = try pExprAss
   <|> pExprIf
   <|> makeExprParser aexpr operators
 
+-- Types
+
+pTypeVar :: Parser Type
+pTypeVar = do
+  u <- Name . (: []) <$> lexeme lowerChar
+  return (TVar $ TV u) <?> "type variable"
+
+pTypeCon :: Parser Type
+pTypeCon = do
+  name <- Name <$> upperIdentifier
+  return (TCon $ TC name) <?> "type constant"
+
+pTypeApp :: Parser Type
+pTypeApp = p <?> "type application"
+  where p = do
+          t1 <- pType
+          t2 <- pType
+          return $ TApp t1 t2
+  
+pType :: Parser Type
+pType = makeExprParser atype []
+  where atype = do
+          r <- some $ choice [ pTypeVar
+                             , pTypeCon]
+          return $ Prelude.foldl1 TApp r
+
 -- Patterns
 
 pPatternLit :: Parser Pattern
@@ -208,10 +234,17 @@ pBindGroup = withExprBlock p
               . mkBind name Nothing
               . Match pats)
 
+-- Declarations
+
 pFunctionDecl :: Parser Decl
 pFunctionDecl = FunDecl <$> pBindGroup <?> "function declaration"
 
--- Declarations
+pTypeDecl :: Parser Decl
+pTypeDecl = do
+  name <- pName
+  _ <- symbol "::"
+  t <- pType
+  return $ TypeDecl name t
 
 pDecl :: Parser Decl
 pDecl = L.nonIndented scn pFunctionDecl

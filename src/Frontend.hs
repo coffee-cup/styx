@@ -56,7 +56,7 @@ data Pattern
 
 data Decl
   = FunDecl BindGroup            -- f x = x + 1
-  | TypeDecl Type                -- f :: Int -> Int
+  | TypeDecl Name Type                -- f :: Int -> Int
   deriving (Eq, Show)
 
 data Module = Module Name [Decl] -- module T

@@ -56,5 +56,5 @@ instance HasKind Type where
   kind (TCon c) = kind c
   kind (TApp t _) = case kind t of
                       (KArr _ k) -> k
-                      k -> k
+                      k          -> k
   kind (TArr t _) = kind t

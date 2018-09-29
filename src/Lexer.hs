@@ -101,3 +101,9 @@ lowerIdentifier :: Parser String
 lowerIdentifier = predIdentifier (p . head) "does not start with a lowercase letter"
   where
     p = flip elem ('_' : ['a'..'z'])
+
+-- Convert char in Parser to string
+pCharToString :: Parser Char -> Parser L.Text
+pCharToString pc = do
+  c <- pc
+  return $ L.pack $ show c
