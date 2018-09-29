@@ -4,42 +4,57 @@ module Type where
 
 import           Name
 
-import           Data.Char
-import           Data.List   (foldl')
 import           Data.String
 
 data Type
-  = TVar TVar -- type variable
-  | TCon TyCon -- constant
+  = TVar Tyvar     -- type variable
+  | TCon Tycon     -- constant
   | TApp Type Type -- application
   | TArr Type Type -- arrow
-  | TForall [Pred] [TVar] Type
   deriving (Eq, Ord, Show)
 
 data Kind
   = KStar
   | KArr Kind Kind
-  | KPrim
-  | KVar Name
   deriving (Eq, Ord, Show)
 
-data TyCon
-  = AlgTyCon { tyId :: Name }
-  | PrimTyCon { tyId :: Name}
+-- type variable
+data Tyvar = TV Name
   deriving (Eq, Ord, Show)
 
-data Pred
-  = IsIn Name Type
+-- type constant
+data Tycon = TC Name
   deriving (Eq, Ord, Show)
 
--- Type Variables
-
-data TVar = TV
-  { tvName :: Name }
+-- qualified type
+data Qual t = [Pred] :=> t
   deriving (Eq, Ord, Show)
 
-instance IsString TVar where
-  fromString x = TV (fromString x)
+-- predicate
+data Pred = IsIn Name Type
+  deriving (Eq, Ord, Show)
 
-instance IsString TyCon where
-  fromString = AlgTyCon . fromString
+instance IsString Tyvar where
+  fromString = TV . fromString
+
+instance IsString Tycon where
+  fromString = TC . fromString
+
+instance Named Type where
+  getName (TVar (TV n)) = n
+  getName (TCon (TC n)) = n
+
+class HasKind t where
+  kind :: t -> Kind
+
+instance HasKind Tyvar where
+  kind (TV _) = KStar
+instance HasKind Tycon where
+  kind (TC _) = KStar
+instance HasKind Type where
+  kind (TVar u) = kind u
+  kind (TCon c) = kind c
+  kind (TApp t _) = case kind t of
+                      (KArr _ k) -> k
+                      k -> k
+  kind (TArr t _) = kind t

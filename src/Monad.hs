@@ -47,9 +47,6 @@ emptyCS = CompilerState
   , _flags = Flags.emptyFlags
   }
 
-
--- Types
-
 type Pos = String
 
 data CompilerError
