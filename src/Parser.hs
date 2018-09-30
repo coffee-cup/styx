@@ -170,6 +170,17 @@ pExpr = try pExprAss
 
 -- Types
 
+mkPrimParser :: Type -> Parser Type
+mkPrimParser t = try p
+  where
+    p = do
+      let n = getNameString t
+      _ <- symbol n <?> n
+      return t
+
+pTypePrim :: Parser Type
+pTypePrim = Prelude.foldl1 (<|>) (fmap mkPrimParser tyPrims)
+
 pTypeVar :: Parser Type
 pTypeVar = do
   u <- Name . (: []) <$> lexeme lowerChar
@@ -178,21 +189,20 @@ pTypeVar = do
 pTypeCon :: Parser Type
 pTypeCon = do
   name <- Name <$> upperIdentifier
-  return (TCon $ TC name) <?> "type constant"
+  let con = AlgTyCon name
+  vars <- many $ choice [pTypeVar, pTypePrim]
+  return (mkTApp con vars) <?> "type constructor"
 
-pTypeApp :: Parser Type
-pTypeApp = p <?> "type application"
-  where p = do
-          t1 <- pType
-          t2 <- pType
-          return $ TApp t1 t2
-  
 pType :: Parser Type
-pType = makeExprParser atype []
-  where atype = do
-          r <- some $ choice [ pTypeVar
-                             , pTypeCon]
-          return $ Prelude.foldl1 TApp r
+pType = makeExprParser atype typeOperators
+  where
+    typeOperators :: [[Operator Parser Type]]
+    typeOperators = [ [ InfixR (mkTArr2 <$ symbol "->") ] ]
+    atype = choice
+      [ try pTypePrim
+      , pTypeVar
+      , pTypeCon
+      ]
 
 -- Patterns
 

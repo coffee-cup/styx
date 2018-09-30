@@ -28,3 +28,7 @@ genNames = Prelude.zipWith Gen letters [0..]
 
 class Named a where
   getName :: a -> Name
+  getNameString :: a -> String
+  getNameString a =
+    let (Name n) = getName a
+    in n

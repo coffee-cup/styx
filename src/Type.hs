@@ -8,7 +8,7 @@ import           Data.List   (foldl')
 import           Data.String
 
 data Type
-  = TVar TVar     -- type variable
+  = TVar TVar      -- type variable
   | TCon TyCon     -- constant
   | TApp Type Type -- application
   | TArr Type Type -- arrow
@@ -35,7 +35,7 @@ data TVar = TV
 instance IsString TVar where
   fromString x = TV (fromString x)
 
--- type constants
+-- type constructors
 
 data TyCon
   = AlgTyCon { tyId :: Name }
@@ -93,10 +93,16 @@ typeArity ty = length $ viewTArr ty
 
 -- constructors
 
+mkTCon :: Name -> Type
+mkTCon n = TCon $ AlgTyCon n
+
 mkTArr :: [Type] -> Type
 mkTArr []     = error "not defined for empty lists"
 mkTArr [t]    = t
 mkTArr (t:ts) = TArr t (mkTArr ts)
+
+mkTArr2 :: Type -> Type -> Type
+mkTArr2 t1 t2 = mkTArr [t1, t2]
 
 mkTApp :: TyCon -> [Type] -> Type
 mkTApp tcon args = foldl' TApp (TCon tcon) args
@@ -106,9 +112,9 @@ mkTPair = foldr1 pair
   where pair x y = mkTApp (AlgTyCon "Pair") [x, y]
 
 mkTList :: Type -> Type
-mkTList tp = TApp (TCon (AlgTyCon "List")) tp
+mkTList t = TApp (TCon (AlgTyCon "List")) t
 
--- build in types
+-- built in types
 
 tyInt :: Type
 tyInt = TCon intTyCon
@@ -131,8 +137,17 @@ tyPair = TCon pairTyCon
 tyUnit :: Type
 tyUnit = TCon unitTyCon
 
-tString :: Type
-tString = mkTList tyChar
+tyString :: Type
+tyString = mkTList tyChar
+
+tyPrims :: [Type]
+tyPrims =
+  [ tyInt
+  , tyDouble
+  , tyChar
+  , tyBool
+  , tyUnit
+  ]
 
 intTyCon :: TyCon
 intTyCon = PrimTyCon "Int"
@@ -150,7 +165,7 @@ pairTyCon :: TyCon
 pairTyCon = AlgTyCon "Pair"
 
 unitTyCon :: TyCon
-unitTyCon = AlgTyCon "Unit"
+unitTyCon = AlgTyCon "()"
 
 tyArrow :: Type
 tyArrow = TCon (AlgTyCon "->")
