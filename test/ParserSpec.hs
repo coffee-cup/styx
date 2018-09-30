@@ -6,6 +6,7 @@ import           Frontend
 import           Lexer
 import           Name
 import           Parser
+import           Type
 
 import qualified Data.Text.Lazy                  as L
 import qualified Data.Text.Lazy.IO               as LIO
@@ -23,6 +24,50 @@ spec = do
                                                              [(Match [] [(ELit $ LitInt 3)])]
                                                              Nothing)
 
+  describe "Types" $ do
+    describe "Primitives" $ do
+      it "int" $
+        parseSimple pType "Int" `shouldBe` (Right $ tyInt)
+
+      it "double" $
+        parseSimple pType "Double" `shouldBe` (Right $ tyDouble)
+
+      it "char" $
+        parseSimple pType "Char" `shouldBe` (Right $ tyChar)
+
+      it "bool" $
+        parseSimple pType "Bool" `shouldBe` (Right $ tyBool)
+
+    describe "Constructors" $ do
+      it "no vars" $
+        parseSimple pType "Maybe" `shouldBe` (Right $ mkTCon "Maybe")
+
+      it "type variable" $
+        parseSimple pType "Either a b" `shouldBe` (Right $
+                                                  mkTApp "Either"
+                                                  [TVar $ TV "a",
+                                                   TVar $ TV "b"])
+
+      it "type primitive" $
+        parseSimple pType "Maybe Int" `shouldBe` (Right $
+                                                 mkTApp "Maybe" [tyInt])
+
+    describe "Arrow" $ do
+      it "type variables" $
+        parseSimple pType "a -> b" `shouldBe` (Right $
+                                              mkTArr [TVar $ TV "a", TVar $ TV "b"])
+
+      it "type primitive" $
+        parseSimple pType "Int -> Char -> Bool" `shouldBe` (Right $
+                                                   mkTArr [tyInt, tyChar, tyBool])
+
+      it "type constructors" $
+        parseSimple pType "Maybe a -> Either Int a" `shouldBe` (Right $
+                                                               mkTArr
+                                                               [ mkTApp "Maybe" [TVar $ TV "a"]
+                                                               , mkTApp "Either" [tyInt, TVar $ TV "a"]
+                                                               ])
+      
   describe "Literals" $ do
     it "integer" $
       parseSimple pLiteral "1" `shouldBe` (Right $ LitInt 1)
