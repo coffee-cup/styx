@@ -51,6 +51,10 @@ integer = lexeme L.decimal
 double :: Parser Double
 double = lexeme L.float
 
+-- Parse a comma
+comma :: Parser ()
+comma = void $ lexeme $ char ','
+
 -- Parse an escaped character
 escapedChars :: Parser Char
 escapedChars = do

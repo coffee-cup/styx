@@ -67,6 +67,10 @@ spec = do
                                                                [ mkTApp "Maybe" [TVar $ TV "a"]
                                                                , mkTApp "Either" [tyInt, TVar $ TV "a"]
                                                                ])
+    describe "Parens" $ do
+      it "parens" $
+        parseSimple pType "(Maybe a)" `shouldBe` (Right $
+                                                  mkTApp "Maybe" [TVar $ TV "a"])
       
   describe "Literals" $ do
     it "integer" $

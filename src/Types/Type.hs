@@ -1,23 +1,18 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Type where
+module Types.Type where
 
 import           Name
+import           Types.Kind
 
 import           Data.List   (foldl')
 import           Data.String
 
 data Type
-  = TVar TVar      -- type variable
-  | TCon TyCon     -- constant
-  | TApp Type Type -- application
-  | TArr Type Type -- arrow
-  deriving (Eq, Ord, Show)
-
-data Kind
-  = KStar
-  | KArr Kind Kind
-  | KVar Name
+  = TVar TVar                  -- type variable
+  | TCon TyCon                 -- constant
+  | TApp Type Type             -- application
+  | TArr Type Type             -- arrow
   deriving (Eq, Ord, Show)
 
 instance Named Type where
@@ -44,16 +39,6 @@ data TyCon
 
 instance IsString TyCon where
   fromString = AlgTyCon . fromString
-
--- predicates
-
-data Pred = IsIn Name Type
-  deriving (Eq, Ord, Show)
-
--- qualified types
-
-data Qual t = [Pred] :=> t
-  deriving (Eq, Ord, Show)
 
 -- alpha equivalence
 

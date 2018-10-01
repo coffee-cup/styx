@@ -6,7 +6,9 @@ module Parser where
 import           Frontend
 import           Lexer
 import           Name                       hiding (prefix)
-import           Type
+import           Types.Pred
+import           Types.Scheme
+import           Types.Type
 
 import           Data.Text.Lazy             as L
 import           Data.Void
@@ -193,16 +195,46 @@ pTypeCon = do
   vars <- many $ choice [pTypeVar, pTypePrim]
   return (mkTApp con vars) <?> "type constructor"
 
+pTypeParens :: Parser Type
+pTypeParens = (lexeme . parens) pType
+
 pType :: Parser Type
 pType = makeExprParser atype typeOperators
   where
     typeOperators :: [[Operator Parser Type]]
     typeOperators = [ [ InfixR (mkTArr2 <$ symbol "->") ] ]
     atype = choice
-      [ try pTypePrim
+      [ pTypeParens
+      , try pTypePrim
       , pTypeVar
       , pTypeCon
       ]
+
+-- Num a => Type
+pPred :: Parser Pred
+pPred = do
+  name <- Name <$> upperIdentifier
+  var <- pTypeVar
+  return $ IsIn name var
+
+-- (Num a, Show b)
+pPreds :: Parser [Pred]
+pPreds = (lexeme . parens) p <|> p
+  where
+    p = pPred `sepBy` comma
+
+pQual :: Parser (Qual Type)
+pQual = do
+  ps <- pPreds
+  _ <- symbol "=>"
+  t <- pType
+  return $ ps :=> t
+
+pScheme :: Parser Scheme
+pScheme = try pq <|> pt
+  where
+    pq = Forall <$> pQual
+    pt = toScheme <$> pType
 
 -- Patterns
 
