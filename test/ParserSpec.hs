@@ -439,6 +439,9 @@ spec = do
                                                                       [(Match [PVar "x"] [EVar "x", EVar "y"])]
                                                                       Nothing])
 
+    it "class with no decls fails" $
+      isLeft $ parseSimpleUnlines pDecl ["class Show a => Num a where"]
+
   describe "Module" $ do
     it "empty module" $
       parseSimple pModule "module Test" `shouldBe` (Right $ Module (Name "Test") [])
