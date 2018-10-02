@@ -442,6 +442,24 @@ spec = do
     it "class with no decls fails" $
       isLeft $ parseSimpleUnlines pDecl ["class Show a => Num a where"]
 
+  describe "Instance Decls" $ do
+    it "instance with no predicates" $
+      parseSimpleUnlines pDecl ["instance Num a where",
+                                "  id x = x"] `shouldBe` (Right $ InstDecl $
+                                                         INST [] "Num" (var "a")
+                                                           [FunDecl $ BindGroup (Name "id")
+                                                            [(Match [PVar "x"] [EVar "x"])]
+                                                             Nothing])
+
+    it "instance with predicates" $
+      parseSimpleUnlines pDecl ["instance First a, Second b => Num a where",
+                                "  id x = x"] `shouldBe` (Right $ InstDecl $
+                                                         INST [IsIn "First" (var "a"), IsIn "Second" (var "b")]
+                                                           "Num" (var "a")
+                                                           [FunDecl $ BindGroup (Name "id")
+                                                            [(Match [PVar "x"] [EVar "x"])]
+                                                             Nothing])
+
   describe "Module" $ do
     it "empty module" $
       parseSimple pModule "module Test" `shouldBe` (Right $ Module (Name "Test") [])
@@ -451,7 +469,7 @@ spec = do
                                                                        (Name "Test")
                                                                        [FunDecl $ BindGroup (Name "f")
                                                                          [Match [PWild] [EVar $ Name "x"]]
-                                                                       Nothing ])
+                                                                       Nothing])
 
     it "invalid module name" $
       isLeft $ parseSimple pModule "module test"
