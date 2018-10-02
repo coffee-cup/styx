@@ -4,14 +4,17 @@
 
 module Frontend where
 
-import           Prelude hiding (concatMap, foldr, foldr1)
+import           Prelude      hiding (concatMap, foldr, foldr1)
 
 import           Name
-import           Type
+import           Types.Pred
+import           Types.Scheme
+import           Types.Type
 
 -- Constructor
 type Constr = Name
 
+-- Expressions
 data Expr
   = EApp Expr Expr               -- a b
   | EInApp Expr Expr             -- a + b
@@ -25,6 +28,7 @@ data Expr
   | EParens Expr                 -- (a)
   deriving (Eq, Show)
 
+-- Literals
 data Literal
   = LitInt Integer               -- 1
   | LitDouble Double             -- 1.1
@@ -33,17 +37,20 @@ data Literal
   | LitString String             -- "hello"
   deriving (Eq, Ord, Show)
 
+-- BindGroups
 data BindGroup = BindGroup
   { _matchName :: Name
   , _matchPats :: [Match]
   , _matchType :: Maybe Type
   } deriving (Eq, Show)
 
+-- Matches
 data Match = Match
   { _matchPat  :: [Pattern]
   , _matchBody :: [Expr]
   } deriving (Eq, Show)
 
+-- Patterns
 data Pattern
   = PVar Name                    -- x
   | PCon Constr [Pattern]        -- C x y
@@ -54,9 +61,14 @@ data Pattern
 -- data DataDecl
 --   = ...
 
+-- Declarations
 data Decl
-  = FunDecl BindGroup            -- f x = x + 1
-  | TypeDecl Name Type                -- f :: Int -> Int
+  = FunDecl BindGroup   -- f x = x + 1
+  | TypeDecl Name Scheme  -- f :: Int -> Int
+  | ClassDecl ClassDecl -- class (P) => T where { ... }
+  deriving (Eq, Show)
+
+data ClassDecl = CL [Pred] Name [TVar] [Decl]
   deriving (Eq, Show)
 
 data Module = Module Name [Decl] -- module T

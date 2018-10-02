@@ -248,10 +248,10 @@ pPatternConstr :: Parser Pattern
 pPatternConstr = do
   name <- upperIdentifier
   vars <- pPattern `sepBy` sc
-  (return $ PCon (Name name) vars) <?> "type constructor"
+  return (PCon (Name name) vars) <?> "type constructor"
 
 pPatternWild :: Parser Pattern
-pPatternWild = symbol "_" >> (return PWild) <?> "wildcard"
+pPatternWild = symbol "_" >> return PWild <?> "wildcard"
 
 pPattern :: Parser Pattern
 pPattern = pPatternLit
@@ -281,12 +281,19 @@ pBindGroup = withExprBlock p
 pFunctionDecl :: Parser Decl
 pFunctionDecl = FunDecl <$> pBindGroup <?> "function declaration"
 
+pClassDecl :: Parser ClassDecl
+pClassDecl = do
+  preds <- pPreds
+  name <- pName
+  vars <- many ((TV . Name ) . (: []) <$> lexeme lowerChar)
+  return (CL preds name vars [])
+
 pTypeDecl :: Parser Decl
 pTypeDecl = do
   name <- pName
   _ <- symbol "::"
-  t <- pType
-  return $ TypeDecl name t
+  s <- pScheme
+  return $ TypeDecl name s
 
 pDecl :: Parser Decl
 pDecl = L.nonIndented scn pFunctionDecl
