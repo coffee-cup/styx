@@ -66,9 +66,13 @@ data Decl
   = FunDecl BindGroup   -- f x = x + 1
   | TypeDecl Name Scheme  -- f :: Int -> Int
   | ClassDecl ClassDecl -- class (P) => T where { ... }
+  | InstDecl InstDecl -- instance (P) => T where { ... }
   deriving (Eq, Show)
 
 data ClassDecl = CL [Pred] Name [TVar] [Decl]
+  deriving (Eq, Show)
+
+data InstDecl = INST [Pred] Name Type [Decl]
   deriving (Eq, Show)
 
 data Module = Module Name [Decl] -- module T

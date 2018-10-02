@@ -294,7 +294,7 @@ pFunctionDecl :: Parser Decl
 pFunctionDecl = FunDecl <$> pBindGroup <?> "function declaration"
 
 pClassDecl :: Parser Decl
-pClassDecl = L.indentBlock scn p'
+pClassDecl = L.indentBlock scn p' <?> "class declaration"
   where
     p :: Parser ([Decl] -> Parser Decl)
     p = do
@@ -308,12 +308,27 @@ pClassDecl = L.indentBlock scn p'
       f <- p
       return $ L.IndentSome Nothing f (choice [try pTypeDecl, pFunctionDecl])
 
+pInstDecl :: Parser Decl
+pInstDecl = L.indentBlock scn p' <?> "instance declaration"
+  where
+    p :: Parser ([Decl] -> Parser Decl)
+    p = do
+      _ <- symbol "instance"
+      preds <- pPreds
+      name <- Name <$> upperIdentifier
+      t <- pType
+      _ <- symbol "where"
+      return $ return . InstDecl . INST preds name t
+    p' = do
+      f <- p
+      return $ L.IndentSome Nothing f pFunctionDecl
+
 pTypeDecl :: Parser Decl
 pTypeDecl = do
   name <- pName
   _ <- symbol "::"
   s <- pScheme
-  return $ TypeDecl name s
+  return (TypeDecl name s) <?> "type declaration"
 
 pDecl :: Parser Decl
 pDecl = L.nonIndented scn p
@@ -321,6 +336,7 @@ pDecl = L.nonIndented scn p
     p = choice
       [ try pFunctionDecl
       , try pClassDecl
+      , try pInstDecl
       , pTypeDecl
       ]
 
