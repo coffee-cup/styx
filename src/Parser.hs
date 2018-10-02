@@ -183,6 +183,14 @@ mkPrimParser t = try p
 pTypePrim :: Parser Type
 pTypePrim = Prelude.foldl1 (<|>) (fmap mkPrimParser tyPrims)
 
+pVar :: Parser TVar
+pVar = (TV . Name) . (: []) <$> pc <?> "type variable"
+  where
+    pc = (try . lexeme) (lowerChar <* notFollowedBy alphaNumChar)
+
+pVars :: Parser [TVar]
+pVars = pVar `sepBy` sc
+
 pTypeVar :: Parser Type
 pTypeVar = do
   u <- Name . (: []) <$> lexeme lowerChar
@@ -215,23 +223,27 @@ pPred :: Parser Pred
 pPred = do
   name <- Name <$> upperIdentifier
   var <- pTypeVar
-  return $ IsIn name var
+  return (IsIn name var) <?> "type predicate"
 
 -- (Num a, Show b)
 pPreds :: Parser [Pred]
-pPreds = (lexeme . parens) p <|> p
+pPreds = try p' <|> np
   where
     p = pPred `sepBy` comma
+    p' = do
+      ps <- (lexeme . parens) p <|> p
+      _ <- symbol "=>"
+      return ps
+    np = return []
 
 pQual :: Parser (Qual Type)
 pQual = do
   ps <- pPreds
-  _ <- symbol "=>"
   t <- pType
   return $ ps :=> t
 
 pScheme :: Parser Scheme
-pScheme = try pq <|> pt
+pScheme = (try pq <|> pt) <?> "type scheme"
   where
     pq = Forall <$> pQual
     pt = toScheme <$> pType
@@ -281,12 +293,20 @@ pBindGroup = withExprBlock p
 pFunctionDecl :: Parser Decl
 pFunctionDecl = FunDecl <$> pBindGroup <?> "function declaration"
 
-pClassDecl :: Parser ClassDecl
-pClassDecl = do
-  preds <- pPreds
-  name <- pName
-  vars <- many ((TV . Name ) . (: []) <$> lexeme lowerChar)
-  return (CL preds name vars [])
+pClassDecl :: Parser Decl
+pClassDecl = L.indentBlock scn p'
+  where
+    p :: Parser ([Decl] -> Parser Decl)
+    p = do
+      _ <- symbol "class"
+      preds <- pPreds
+      name <- Name <$> upperIdentifier
+      vars <- pVars
+      _ <- symbol "where"
+      return $ return . ClassDecl . CL preds name vars
+    p' = do
+      f <- p
+      return $ L.IndentSome Nothing f (choice [try pTypeDecl, pFunctionDecl])
 
 pTypeDecl :: Parser Decl
 pTypeDecl = do
@@ -296,7 +316,13 @@ pTypeDecl = do
   return $ TypeDecl name s
 
 pDecl :: Parser Decl
-pDecl = L.nonIndented scn pFunctionDecl
+pDecl = L.nonIndented scn p
+  where
+    p = choice
+      [ try pFunctionDecl
+      , try pClassDecl
+      , pTypeDecl
+      ]
 
 -- Module Parser
 

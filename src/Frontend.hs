@@ -73,3 +73,8 @@ data ClassDecl = CL [Pred] Name [TVar] [Decl]
 
 data Module = Module Name [Decl] -- module T
   deriving (Eq, Show)
+
+-- helpers
+
+var :: Name -> Type
+var = TVar . TV
