@@ -6,7 +6,9 @@ import           Frontend
 import           Lexer
 import           Name
 import           Parser
-import           Type
+import           Types.Pred
+import           Types.Scheme
+import           Types.Type
 
 import qualified Data.Text.Lazy                  as L
 import qualified Data.Text.Lazy.IO               as LIO
@@ -45,8 +47,8 @@ spec = do
       it "type variable" $
         parseSimple pType "Either a b" `shouldBe` (Right $
                                                   mkTApp "Either"
-                                                  [TVar $ TV "a",
-                                                   TVar $ TV "b"])
+                                                  [var "a",
+                                                   var "b"])
 
       it "type primitive" $
         parseSimple pType "Maybe Int" `shouldBe` (Right $
@@ -55,7 +57,7 @@ spec = do
     describe "Arrow" $ do
       it "type variables" $
         parseSimple pType "a -> b" `shouldBe` (Right $
-                                              mkTArr [TVar $ TV "a", TVar $ TV "b"])
+                                              mkTArr [var "a", var "b"])
 
       it "type primitive" $
         parseSimple pType "Int -> Char -> Bool" `shouldBe` (Right $
@@ -64,14 +66,14 @@ spec = do
       it "type constructors" $
         parseSimple pType "Maybe a -> Either Int a" `shouldBe` (Right $
                                                                mkTArr
-                                                               [ mkTApp "Maybe" [TVar $ TV "a"]
-                                                               , mkTApp "Either" [tyInt, TVar $ TV "a"]
+                                                               [ mkTApp "Maybe" [var "a"]
+                                                               , mkTApp "Either" [tyInt, var "a"]
                                                                ])
     describe "Parens" $ do
       it "parens" $
         parseSimple pType "(Maybe a)" `shouldBe` (Right $
-                                                  mkTApp "Maybe" [TVar $ TV "a"])
-      
+                                                  mkTApp "Maybe" [var "a"])
+
   describe "Literals" $ do
     it "integer" $
       parseSimple pLiteral "1" `shouldBe` (Right $ LitInt 1)
@@ -385,6 +387,57 @@ spec = do
                                                          PWild]
                                                      [EVar $ Name "x", ELit $ LitInt 1]]
                                                      Nothing)
+
+  describe "Type Decls" $ do
+    it "type with no predicates" $
+      parseSimple pDecl "apply :: (a -> b) -> a -> b" `shouldBe` (Right $ TypeDecl "apply"
+                                                                   (Forall ([] :=> mkTArr [
+                                                                               mkTArr [var "a", var "b"],
+                                                                               mkTArr [var "a", var "b"]])))
+
+    it "type with predicates" $
+      parseSimple pDecl "apply :: (Show a, Num b) => (a -> b) -> a -> b" `shouldBe` (Right $ TypeDecl "apply"
+                                                                   (Forall ([IsIn "Show" (var "a"),
+                                                                             IsIn "Num" (var "b")]
+                                                                             :=> mkTArr
+                                                                             [ mkTArr [var "a", var "b"]
+                                                                             , mkTArr [var "a", var "b"]])))
+
+  describe "Class Decls" $ do
+    it "class with type decl, w/o predicates" $
+      parseSimpleUnlines pDecl ["class Num a where",
+                                "  plus :: a -> a -> a"] `shouldBe` (Right $ ClassDecl $
+                                                                    CL [] "Num" [TV "a"]
+                                                                    [TypeDecl "plus"
+                                                                     (Forall ([] :=> mkTArr [var "a", var "a", var "a"]))])
+
+    it "class with type decl, w/predicates" $
+      parseSimpleUnlines pDecl ["class Show a => Num a where",
+                                "  plus :: a -> a -> a"] `shouldBe` (Right $ ClassDecl $
+                                                                    CL [IsIn "Show" (var "a")] "Num" [TV "a"]
+                                                                    [TypeDecl "plus"
+                                                                     (Forall ([] :=> mkTArr [var "a", var "a", var "a"]))])
+
+    it "class with type decl and func decl" $
+      parseSimpleUnlines pDecl ["class Show a => Num a where",
+                                "  id :: a -> a",
+                                "  id x = x"] `shouldBe` (Right $ ClassDecl $
+                                                                    CL [IsIn "Show" (var "a")] "Num" [TV "a"]
+                                                                    [TypeDecl "id"
+                                                                     (Forall ([] :=> mkTArr [var "a", var "a"])),
+                                                                     FunDecl $ BindGroup (Name "id")
+                                                                      [(Match [PVar "x"] [EVar "x"])]
+                                                                      Nothing])
+
+    it "class with multiline func decl" $
+      parseSimpleUnlines pDecl ["class Show a => Num a where",
+                                "  id x =",
+                                "    x",
+                                "    y"] `shouldBe` (Right $ ClassDecl $
+                                                                    CL [IsIn "Show" (var "a")] "Num" [TV "a"]
+                                                                    [FunDecl $ BindGroup (Name "id")
+                                                                      [(Match [PVar "x"] [EVar "x", EVar "y"])]
+                                                                      Nothing])
 
   describe "Module" $ do
     it "empty module" $
