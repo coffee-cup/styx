@@ -63,6 +63,9 @@ pExprLiteral = ELit <$> pLiteral <?> "literal"
 pExprVar :: Parser Expr
 pExprVar = EVar <$> pName <?> "variable"
 
+pExprCon :: Parser Expr
+pExprCon = (EVar . Name) <$> upperIdentifier
+
 withExprBlock :: Parser ([Expr] -> Parser a) -> Parser a
 withExprBlock p = try singleLine <|> multiLine
   where
@@ -160,7 +163,8 @@ aexpr :: Parser Expr
 aexpr = do
   r <- some $ choice [ pExprParens
                      , pExprLiteral
-                     , pExprVar
+                     , try pExprVar
+                     , pExprCon
                      ]
   return $ Prelude.foldl1 EApp r
 
