@@ -5,6 +5,7 @@
 module Frontend where
 
 import           Prelude      hiding (concatMap, foldr, foldr1)
+import Data.List (foldl')
 
 import           Name
 import           Types.Pred
@@ -82,3 +83,6 @@ data Module = Module Name [Decl] -- module T
 
 var :: Name -> Type
 var = TVar . TV
+
+mkEApp :: [Expr] -> Expr
+mkEApp es = foldl1 EApp es

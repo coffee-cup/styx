@@ -126,8 +126,20 @@ spec = do
       it "underscore var" $
         parseSimple pExpr "_" `shouldBe` (Right $ EVar $ Name "_")
 
+      it "uppercase var" $
+        parseSimple pExpr "Just" `shouldBe` (Right $ EVar $ Name "Just")
+
       it "invalid identifier" $
         isLeft $ parseSimple pExpr "#(&)%)#(&%#*(^%))1234"
+
+    describe "Application" $ do
+      it "simple application" $
+        parseSimple pExpr "map f xs" `shouldBe` (Right $
+                                                 mkEApp [EVar "map", EVar "f", EVar "xs"])
+
+      it "constructor application" $
+        parseSimple pExpr "Either Int a" `shouldBe` (Right $
+                                                     mkEApp [EVar "Either", EVar "Int", EVar "a"])
 
     describe "Assignment" $ do
       it "assignment to literal" $
