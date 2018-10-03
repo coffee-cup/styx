@@ -4,8 +4,8 @@
 
 module Frontend where
 
+import           Data.List    (foldl')
 import           Prelude      hiding (concatMap, foldr, foldr1)
-import Data.List (foldl')
 
 import           Name
 import           Types.Pred
@@ -13,9 +13,11 @@ import           Types.Scheme
 import           Types.Type
 
 -- Constructor
+
 type Constr = Name
 
 -- Expressions
+
 data Expr
   = EApp Expr Expr               -- a b
   | EInApp Expr Expr             -- a + b
@@ -30,6 +32,7 @@ data Expr
   deriving (Eq, Show)
 
 -- Literals
+
 data Literal
   = LitInt Integer               -- 1
   | LitDouble Double             -- 1.1
@@ -39,6 +42,7 @@ data Literal
   deriving (Eq, Ord, Show)
 
 -- BindGroups
+
 data BindGroup = BindGroup
   { _matchName :: Name
   , _matchPats :: [Match]
@@ -46,12 +50,14 @@ data BindGroup = BindGroup
   } deriving (Eq, Show)
 
 -- Matches
+
 data Match = Match
   { _matchPat  :: [Pattern]
   , _matchBody :: [Expr]
   } deriving (Eq, Show)
 
 -- Patterns
+
 data Pattern
   = PVar Name                    -- x
   | PCon Constr [Pattern]        -- C x y
@@ -59,15 +65,14 @@ data Pattern
   | PWild                        -- _
   deriving (Eq, Show)
 
--- data DataDecl
---   = ...
-
 -- Declarations
+
 data Decl
-  = FunDecl BindGroup   -- f x = x + 1
-  | TypeDecl Name Scheme  -- f :: Int -> Int
-  | ClassDecl ClassDecl -- class (P) => T where { ... }
-  | InstDecl InstDecl -- instance (P) => T where { ... }
+  = FunDecl BindGroup             -- f x = x + 1
+  | TypeDecl Name Scheme          -- f :: Int -> Int
+  | ClassDecl ClassDecl           -- class (P) => T where { ... }
+  | InstDecl InstDecl             -- instance (P) => T where { ... }
+  | DataDecl DataDecl             -- data Maybe where { ... }
   deriving (Eq, Show)
 
 data ClassDecl = CL [Pred] Name [TVar] [Decl]
@@ -76,10 +81,18 @@ data ClassDecl = CL [Pred] Name [TVar] [Decl]
 data InstDecl = INST [Pred] Name Type [Decl]
   deriving (Eq, Show)
 
-data Module = Module Name [Decl] -- module T
+data DataDecl = DTCL Constr [TVar] [ConDecl]
   deriving (Eq, Show)
 
--- helpers
+data ConDecl
+  = ConDecl Constr [Type]         -- T a b
+  | RecDecl Constr [(Name, Type)] -- { label :: a }
+  deriving (Eq, Show)
+
+data Module = Module Name [Decl]  -- module T
+  deriving (Eq, Show)
+
+-- Helpers
 
 var :: Name -> Type
 var = TVar . TV

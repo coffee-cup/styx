@@ -43,6 +43,10 @@ symbol = L.symbol sc . L.pack
 parens :: Parser a -> Parser a
 parens = between (char '(') (char ')')
 
+-- Parse something between braces
+braces :: Parser a -> Parser a
+braces = between (char '{') (char '}')
+
 -- Parse an integer
 integer :: Parser Integer
 integer = lexeme L.decimal
@@ -51,9 +55,20 @@ integer = lexeme L.decimal
 double :: Parser Double
 double = lexeme L.float
 
--- Parse a comma
-comma :: Parser ()
+-- Common symbols
+
+comma, equals, implies, pipe, dcolon, quote, dquote, bslash, arrow
+  :: Parser ()
+
 comma = void $ lexeme $ char ','
+equals = void $ lexeme $ char '='
+implies = void $ lexeme $ symbol "=>"
+pipe = void $ lexeme $ char '|'
+dcolon = void $ lexeme $ symbol "::"
+quote = void $ lexeme $ char '\''
+dquote = void $ lexeme $ char '"'
+bslash = void $ lexeme $ char '\\'
+arrow = void $ lexeme $ symbol "->"
 
 -- Parse an escaped character
 escapedChars :: Parser Char
@@ -70,7 +85,17 @@ escapedChars = do
 
 -- List of reserved words
 reservedWords :: [String]
-reservedWords = ["if", "then", "else", "case", "true", "false", "module", "data"]
+reservedWords =
+  [ "if"
+  , "then"
+  , "else"
+  , "case"
+  , "module"
+  , "class"
+  , "instance"
+  , "type"
+  , "where"
+  ]
 
 -- Parse a reserved word
 rword :: String -> Parser ()

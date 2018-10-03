@@ -33,16 +33,16 @@ pBoolLit = p <?> "boolean"
 
 pCharLit :: Parser Literal
 pCharLit = do
-  _ <- char '\''
+  quote
   c <- anyChar
-  _ <- char '\''
+  quote
   (return $ LitChar c) <?> "char"
 
 pStringLit :: Parser Literal
 pStringLit = do
-  _ <- char '"'
+  dquote
   x <- many $ escapedChars <|> noneOf ("\"\\" :: String)
-  _ <- char '"'
+  dquote
   (return $ LitString x) <?> "string"
 
 pLiteral :: Parser Literal
@@ -82,9 +82,9 @@ pExprLam :: Parser Expr
 pExprLam = withExprBlock (p <?> "lambda")
   where
     p = do
-      _ <- symbol "\\"
+      bslash
       names <- pName `sepBy` sc
-      _ <- symbol "->"
+      arrow
       return $ return . ELam names
 
 pExprIf :: Parser Expr
@@ -114,7 +114,7 @@ pExprAss = p <?> "assignment"
   where
     p = do
       name <- pName
-      _ <- symbol "="
+      equals
       expr <- pExpr
       return $ EAss name expr
 
@@ -236,7 +236,7 @@ pPreds = try p' <|> np
     p = pPred `sepBy` comma
     p' = do
       ps <- (lexeme . parens) p <|> p
-      _ <- symbol "=>"
+      implies
       return ps
     np = return []
 
@@ -287,7 +287,7 @@ pBindGroup = withExprBlock p
     p = do
       name <- pName
       pats <- pPattern `sepBy` sc
-      _ <- symbol "="
+      equals
       return (return
               . mkBind name Nothing
               . Match pats)
@@ -302,11 +302,11 @@ pClassDecl = L.indentBlock scn p' <?> "class declaration"
   where
     p :: Parser ([Decl] -> Parser Decl)
     p = do
-      _ <- symbol "class"
+      rword "class"
       preds <- pPreds
       name <- Name <$> upperIdentifier
       vars <- pVars
-      _ <- symbol "where"
+      rword "where"
       return $ return . ClassDecl . CL preds name vars
     p' = do
       f <- p
@@ -317,11 +317,11 @@ pInstDecl = L.indentBlock scn p' <?> "instance declaration"
   where
     p :: Parser ([Decl] -> Parser Decl)
     p = do
-      _ <- symbol "instance"
+      rword "instance"
       preds <- pPreds
       name <- Name <$> upperIdentifier
       t <- pType
-      _ <- symbol "where"
+      rword "where"
       return $ return . InstDecl . INST preds name t
     p' = do
       f <- p
@@ -330,9 +330,39 @@ pInstDecl = L.indentBlock scn p' <?> "instance declaration"
 pTypeDecl :: Parser Decl
 pTypeDecl = do
   name <- pName
-  _ <- symbol "::"
+  dcolon
   s <- pScheme
   return (TypeDecl name s) <?> "type declaration"
+
+pConDecl :: Parser ConDecl
+pConDecl = try pRec <|> pCon
+  where
+    pCon = do
+      name <- Name <$> upperIdentifier
+      ts <- many pType
+      return $ ConDecl name ts
+    pRec = do
+      name <- Name <$> upperIdentifier
+      _ <- symbol "{"
+      nts <- many pNamedType
+      _ <- symbol "}"
+      return $ RecDecl name nts
+    pNamedType :: Parser (Name, Type)
+    pNamedType = do
+      name <- pName
+      dcolon
+      t <- pType
+      return (name, t)
+
+pDataDecl :: Parser Decl
+pDataDecl = do
+  rword "type"
+  name <- Name <$> upperIdentifier
+  vars <- many pVar
+  equals
+  cons <- pConDecl `sepBy` pipe
+  return $ DataDecl $ DTCL name vars cons
+
 
 pDecl :: Parser Decl
 pDecl = L.nonIndented scn p
@@ -341,6 +371,7 @@ pDecl = L.nonIndented scn p
       [ try pFunctionDecl
       , try pClassDecl
       , try pInstDecl
+      , try pDataDecl
       , pTypeDecl
       ]
 

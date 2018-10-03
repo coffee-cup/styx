@@ -123,7 +123,7 @@ tyUnit :: Type
 tyUnit = TCon unitTyCon
 
 tyString :: Type
-tyString = mkTList tyChar
+tyString = TCon (AlgTyCon "String")
 
 tyPrims :: [Type]
 tyPrims =
