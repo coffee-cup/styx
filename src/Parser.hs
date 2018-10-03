@@ -335,16 +335,17 @@ pTypeDecl = do
   return (TypeDecl name s) <?> "type declaration"
 
 pConDecl :: Parser ConDecl
-pConDecl = try pRec <|> pCon
+pConDecl = pCon
   where
     pCon = do
       name <- Name <$> upperIdentifier
       ts <- many pType
+      try scn
       return $ ConDecl name ts
     pRec = do
       name <- Name <$> upperIdentifier
       _ <- symbol "{"
-      nts <- many pNamedType
+      nts <- pNamedType `sepBy` comma
       _ <- symbol "}"
       return $ RecDecl name nts
     pNamedType :: Parser (Name, Type)
@@ -359,10 +360,11 @@ pDataDecl = do
   rword "type"
   name <- Name <$> upperIdentifier
   vars <- many pVar
+  try scn
   equals
-  cons <- pConDecl `sepBy` pipe
+  try scn
+  cons <- pConDecl `sepBy` (pipe >> try scn)
   return $ DataDecl $ DTCL name vars cons
-
 
 pDecl :: Parser Decl
 pDecl = L.nonIndented scn p
@@ -412,31 +414,3 @@ parseSimpleString p = parseSimple p . L.pack
 runStyxParser :: String -> Parser a -> L.Text -> Either String a
 runStyxParser input p =
   parseUnpack . runParser (contents p) input . L.strip
-
--- pItem :: Parser String
--- pItem = lexeme (takeWhile1P Nothing f) <?> "list item"
---   where
---     f x = isAlphaNum x || x == '-'
-
--- pComplexItem :: Parser (String, [String])
--- pComplexItem = L.indentBlock scn p
---   where
---     p = do
---       header <- pItem
---       return (L.IndentMany Nothing (return . (header, )) pLineFold)
-
--- pLineFold :: Parser String
--- pLineFold = L.lineFold scn $ \sc' ->
---   let ps = takeWhile1P Nothing f `sepBy1` try sc'
---       f x = isAlphaNum x || x == '-'
---   in Prelude.unwords <$> ps <* sc
-
--- pItemList :: Parser (String, [(String, [String])])
--- pItemList = L.nonIndented scn (L.indentBlock scn p)
---   where
---     p = do
---       header <- pItem
---       return (L.IndentSome Nothing (return . (header, )) pComplexItem)
-
--- parser :: Parser (String, [(String, [String])])
--- parser = pItemList <* eof

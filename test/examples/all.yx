@@ -1,0 +1,17 @@
+module Main
+
+type Maybe a = Just a | Nothing
+
+type Either a b
+  = Left a
+  | Right b
+
+class Show a => Num a where
+  plus :: a -> a -> a
+  plus1 x = plus 1 x
+
+instance Num Int where
+  plus a b = a + b
+
+apply :: (a -> b) -> a -> b
+apply f x = f x

@@ -472,6 +472,46 @@ spec = do
                                                             [(Match [PVar "x"] [EVar "x"])]
                                                              Nothing])
 
+  describe "Data Decls" $ do
+    it "single alias type" $
+      parseSimple pDecl "type NewInt = Int" `shouldBe` (Right $ DataDecl $
+                                                       DTCL "NewInt" [] [ConDecl "Int" []])
+
+    it "constructor with type params" $
+      parseSimple pDecl "type Either a b = Left a | Right b" `shouldBe` (Right $ DataDecl $
+                                                                        DTCL "Either" ["a", "b"]
+                                                                          [ConDecl "Left" [var "a"],
+                                                                          ConDecl "Right" [var "b"]])
+
+    it "multiline constructor" $
+      parseSimpleUnlines pDecl ["type Either a b", "  = Left a", "  | Right b"] `shouldBe` (Right $ DataDecl $
+                                                                        DTCL "Either" ["a", "b"]
+                                                                          [ConDecl "Left" [var "a"],
+                                                                          ConDecl "Right" [var "b"]])
+
+    -- it "simple record type" $
+    --   parseSimple pDecl "type Person = Person { name :: String }" `shouldBe` (Right $ DataDecl $
+    --                                                                   DTCL "Person" []
+    --                                                                          [RecDecl "Person" [("name", tyString)]])
+
+    -- it "record with multiple fields and type params" $
+    --   parseSimple pDecl "type Thing a = Thing { yes :: a, no :: Int }" `shouldBe` (Right $ DataDecl $
+    --                                                                    DTCL "Thing" ["a"]
+    --                                                                    [RecDecl "Thing" [("yes", var "a"),
+    --                                                                                      ("no", tyInt)]])
+
+    -- it "multiple constructor types" $
+    --   parseSimple pDecl "type Person a b = P1 a | P2 { hello :: b }" `shouldBe` (Right $ DataDecl $
+    --                                                                             DTCL "Person" ["a", "b"]
+    --                                                                               [ConDecl "P1" [var "a"],
+    --                                                                                RecDecl "P2" [("hello", var "b")]])
+
+    -- it "multiline with multiple constructor types" $
+    --   parseSimpleUnlines pDecl ["type Person a =", "  Jake", "  | Aleesha { v :: a }"] `shouldBe` (Right $ DataDecl $
+    --                                                                                             DTCL "Person" ["a"]
+    --                                                                                               [ConDecl "Jake" [],
+    --                                                                                                RecDecl "Aleesha" [("v", var "a")]])
+
   describe "Module" $ do
     it "empty module" $
       parseSimple pModule "module Test" `shouldBe` (Right $ Module (Name "Test") [])
@@ -482,6 +522,9 @@ spec = do
                                                                        [FunDecl $ BindGroup (Name "f")
                                                                          [Match [PWild] [EVar $ Name "x"]]
                                                                        Nothing])
+
+    it "valid file" $
+       isRight $ parseSimpleFile pModule (testFile "all")
 
     it "invalid module name" $
       isLeft $ parseSimple pModule "module test"
