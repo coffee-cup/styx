@@ -14,8 +14,8 @@ import           Control.Monad.State
 -- import           Data.Monoid         (pure)
 
 import           Data.Semigroup      ((<>))
-import           Data.Text.Lazy      as L
-import           Data.Text.Lazy.IO   as TIO
+import           Data.Text.Lazy       as L
+import           Data.Text.Lazy.IO    as L
 import           Options.Applicative
 import           System.Directory
 
@@ -57,16 +57,7 @@ runFile compilerState fname = do
   (res, _) <- runCompilerM compileFile updatedState
   case res of
     Left err -> print err
-    Right _  -> TIO.putStrLn "\nCompiled"
-
-getFileContents :: FilePath -> IO (Maybe L.Text)
-getFileContents fname = do
-  exists <- doesFileExist fname
-  if exists
-    then do
-      text <- TIO.readFile fname
-      return $ Just text
-    else return Nothing
+    Right _  -> L.putStrLn "\nCompiled"
 
 styxEntry :: Options -> IO ()
 styxEntry opts =

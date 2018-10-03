@@ -35,28 +35,42 @@ initState = IState
 
 type Repl a = HaskelineT (StateT IState IO) a
 
-hoistErr :: Show e => Either e a -> Repl a
-hoistErr (Right val) = return val
-hoistErr (Left err) = do
+hoistErr :: Show e => Either e a -> Repl ()
+hoistErr (Right val) = return ()
+hoistErr (Left err) =
   liftIO $ print err
-  abort
+
+updateCompilerState :: CompilerState -> Repl ()
+updateCompilerState cs = modify (\st -> st { _compilerState = cs })
 
 -- Execution
 
-exec :: Bool -> L.Text -> Repl ()
-exec update source = do
+exec :: Bool -> CompilerM () -> Repl ()
+exec update compM = do
   cs <- gets _compilerState
-  let cs' = cs { _src = Just source }
-
-  (cm, cs'') <- liftIO $ runCompilerM compileLine cs'
+  (cm, cs'') <- liftIO $ runCompilerM compM cs
   hoistErr cm
 
-  when update (modify (\st -> st { _compilerState = cs''}))
-
+  when update (updateCompilerState cs'')
   return ()
 
+execLine :: Bool -> L.Text -> Repl ()
+execLine update source = do
+  cs <- gets _compilerState
+  let cs' = cs { _src = Just source }
+  updateCompilerState cs'
+  exec update compileLine
+
+execFile :: FilePath -> Repl ()
+execFile fname = do
+  mtext <- liftIO $ getFileContents fname
+  cs <- gets _compilerState
+  let cs' = cs { _fname = Just fname, _src = mtext }
+  updateCompilerState cs'
+  exec True compileFile
+
 cmd :: String -> Repl ()
-cmd source = exec True (L.pack source)
+cmd source = execLine True (L.pack source)
 
 -- Commands
 
@@ -83,6 +97,11 @@ set flags = changeFlag flags "set" True
 
 unset :: [String] -> Repl ()
 unset flags = changeFlag flags "unset" False
+
+load :: [String] -> Repl ()
+load [] = showError $ "load requires a filename"
+load (fname:[]) = execFile fname
+load _ = showError $ "load requires a single filename"
 
 flags :: a -> Repl ()
 flags _ = do
@@ -125,6 +144,7 @@ options =
   [ ("set", set)
   , ("unset", unset)
   , ("flags", flags)
+  , ("load", load)
   , ("help", help)
   , ("quit", quit)
   ]

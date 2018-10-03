@@ -25,7 +25,7 @@ compileFile = do
     Nothing -> throwError $ FileNotFound fname
     Just src ->
       case parseModule fname src of
-        Right mod -> do
+        Right mod ->
           ifSet dumpFrontend (dumpValues "Frontend" mod)
         Left s -> throwError $ ParseError s
 
@@ -48,3 +48,12 @@ dumpValues header v = do
   inIO $ L.putStrLn $ L.pack $ "--- " ++ header
   inIO $ L.putStrLn $ L.pack $ show v
   inIO $ L.putStrLn ""
+
+getFileContents :: FilePath -> IO (Maybe L.Text)
+getFileContents fname = do
+  exists <- doesFileExist fname
+  if exists
+    then do
+      text <- L.readFile fname
+      return $ Just text
+    else return Nothing
