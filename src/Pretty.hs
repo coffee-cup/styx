@@ -68,6 +68,6 @@ ppmaybe = maybe empty pp
 banner :: String
 banner = render $
   text (ascii ++
-  " Styx Compiler 0.1.0\n")
+  " Styx 0.1.0\n")
   where
     ascii = "  ___ _            \r\n / __| |_ _  ___ __\r\n \\__ \\  _| || \\ \\ /\r\n |___/\\__|\\_, /_\\_\\\r\n          |__/     \r\n\n"
