@@ -5,17 +5,18 @@
 
 module Compiler where
 
-import           Flags
-import           Monad
-import           Parser
-import qualified Frontend as Syn
-
 import           Control.Monad.Except
 import           Control.Monad.State
 
 import           Data.Text.Lazy       as L
 import           Data.Text.Lazy.IO    as L
 import           System.Directory
+
+import           Desugar
+import           Flags
+import qualified Frontend             as Syn
+import           Monad
+import           Parser
 
 compileFile :: CompilerM ()
 compileFile = do
@@ -25,8 +26,9 @@ compileFile = do
     Nothing -> throwError $ FileNotFound fname
     Just src ->
       case parseModule fname src of
-        Right mod ->
-          ifSet dumpFrontend (dumpValues "Frontend" mod)
+        Right mod -> do
+          let mod' = groupBindings mod
+          ifSet dumpFrontend (dumpValues "Frontend" mod')
         Left s -> throwError $ ParseError s
 
 compileLine :: CompilerM ()
@@ -41,7 +43,7 @@ parseText input = do
   ifSet dumpFrontend (dumpValues "Frontend" ast)
   case ast of
     Right ast' -> return ast'
-    Left s -> throwError $ ParseError s
+    Left s     -> throwError $ ParseError s
 
 dumpValues :: Show a => String -> a -> CompilerM ()
 dumpValues header v = do

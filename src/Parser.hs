@@ -278,8 +278,8 @@ pPattern = pPatternLit
 
 -- Functions
 
-mkBind :: Name -> Maybe Type -> Match -> BindGroup
-mkBind n t m = BindGroup n [m] t
+mkBind :: Name -> Maybe Scheme -> Match -> BindGroup
+mkBind n sc m = BindGroup n [m] sc
 
 pBindGroup :: Parser BindGroup
 pBindGroup = withExprBlock p

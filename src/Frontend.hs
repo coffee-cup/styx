@@ -46,7 +46,7 @@ data Literal
 data BindGroup = BindGroup
   { _matchName :: Name
   , _matchPats :: [Match]
-  , _matchType :: Maybe Type
+  , _matchScheme :: Maybe Scheme
   } deriving (Eq, Show)
 
 -- Matches
