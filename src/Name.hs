@@ -2,6 +2,7 @@ module Name where
 
 import           Control.Monad
 import           Data.Monoid
+import qualified Data.Set      as Set
 import           Data.String
 
 data Name
@@ -32,3 +33,15 @@ class Named a where
   getNameString a =
     let (Name n) = getName a
     in n
+
+class AllVars a where
+  allVars :: a -> Set.Set Name
+
+class FreeVars a where
+  freeVars :: a -> Set.Set Name
+
+instance AllVars a => AllVars [a] where
+  allVars = Set.unions . fmap allVars
+
+instance FreeVars a => FreeVars [a] where
+  freeVars = Set.unions . fmap freeVars

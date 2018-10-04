@@ -99,9 +99,9 @@ unset :: [String] -> Repl ()
 unset flags = changeFlag flags "unset" False
 
 load :: [String] -> Repl ()
-load [] = showError $ "load requires a filename"
+load []         = showError $ "load requires a filename"
 load (fname:[]) = execFile fname
-load _ = showError $ "load requires a single filename"
+load _          = showError $ "load requires a single filename"
 
 flags :: a -> Repl ()
 flags _ = do

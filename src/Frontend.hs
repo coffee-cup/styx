@@ -5,6 +5,7 @@
 module Frontend where
 
 import           Data.List    (foldl')
+import qualified Data.Set     as Set
 import           Prelude      hiding (concatMap, foldr, foldr1)
 
 import           Name
@@ -44,8 +45,8 @@ data Literal
 -- BindGroups
 
 data BindGroup = BindGroup
-  { _matchName :: Name
-  , _matchPats :: [Match]
+  { _matchName   :: Name
+  , _matchPats   :: [Match]
   , _matchScheme :: Maybe Scheme
   } deriving (Eq, Show)
 
@@ -94,8 +95,76 @@ data Module = Module Name [Decl]  -- module T
 
 -- Helpers
 
-var :: Name -> Type
-var = TVar . TV
-
 mkEApp :: [Expr] -> Expr
 mkEApp es = foldl1 EApp es
+
+mkEVar :: String -> Expr
+mkEVar = EVar . Name
+
+-- Variables
+
+instance AllVars Pattern where
+  allVars pt = case pt of
+    PVar n    -> Set.singleton n
+    PCon _ ps -> allVars ps
+    PLit _    -> Set.empty
+    PWild     -> Set.empty
+
+instance AllVars Match where
+  allVars (Match _ rhs) = allVars rhs
+
+instance AllVars Expr where
+  allVars ex = case ex of
+    EApp a b    -> allVars a `Set.union` allVars b
+    EInApp a b  -> allVars a `Set.union` allVars b
+    EPreApp a b -> allVars a `Set.union` allVars b
+    EVar a      -> Set.singleton a
+    ELam _ xs   -> allVars xs
+    EAss n e    -> Set.singleton n `Set.union` freeVars e
+    ELit _      -> Set.empty
+    EIf c x y   -> Set.unions [freeVars c, freeVars x, freeVars y]
+    EAnn e _    -> freeVars e
+    EParens e   -> freeVars e
+
+instance AllVars Decl where
+  allVars (FunDecl bg) = allVars bg
+  allVars DataDecl {}  = Set.empty
+  allVars TypeDecl {}  = Set.empty
+  allVars ClassDecl {} = Set.empty
+  allVars InstDecl {}  = Set.empty
+
+instance AllVars BindGroup where
+  allVars (BindGroup _ pats _) = Set.unions (fmap allVars pats)
+
+instance FreeVars Expr where
+  freeVars ex = case ex of
+    EApp a b    -> freeVars a `Set.union` freeVars b
+    EInApp a b  -> freeVars a `Set.union` freeVars b
+    EPreApp a b -> freeVars a `Set.union` freeVars b
+    EVar a      -> Set.singleton a
+    ELam ns xs  -> freeVars xs Set.\\ Set.fromList ns
+    EAss _ e    -> freeVars e
+    ELit _      -> Set.empty
+    EIf c x y   -> Set.unions [freeVars c, freeVars x, freeVars y]
+    EAnn e _    -> freeVars e
+    EParens e   -> freeVars e
+
+instance FreeVars Match where
+  freeVars ex = case ex of
+    Match pats rhs -> freeVars rhs Set.\\ Set.unions (fmap allVars pats)
+
+instance FreeVars Decl where
+  freeVars (FunDecl bg) = freeVars bg
+  freeVars DataDecl {}  = Set.empty
+  freeVars TypeDecl {}  = Set.empty
+  freeVars ClassDecl {} = Set.empty
+  freeVars InstDecl {}  = Set.empty
+
+instance FreeVars BindGroup where
+  freeVars (BindGroup _ pats _) = Set.unions (fmap freeVars pats)
+
+occursIn :: AllVars a => Name -> a -> Bool
+occursIn name ex = name `Set.member` (allVars ex)
+
+boundVars :: (FreeVars a, AllVars a) => a -> Set.Set Name
+boundVars ex = (allVars ex) `Set.difference` (freeVars ex)

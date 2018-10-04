@@ -1,7 +1,5 @@
 module Types.Scheme where
 
-import           Name
-import           Types.Kind
 import           Types.Pred
 import           Types.Type
 

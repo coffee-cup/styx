@@ -2,11 +2,11 @@
 
 module Types.Type where
 
-import           Name
-import           Types.Kind
-
 import           Data.List   (foldl')
 import           Data.String
+
+import           Name
+import           Types.Kind
 
 data Type
   = TVar TVar                  -- type variable
@@ -98,6 +98,9 @@ mkTPair = foldr1 pair
 
 mkTList :: Type -> Type
 mkTList t = TApp (TCon (AlgTyCon "List")) t
+
+var :: Name -> Type
+var = TVar . TV
 
 -- built in types
 
