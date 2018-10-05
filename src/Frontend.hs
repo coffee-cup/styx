@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns               #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TypeSynonymInstances       #-}
@@ -5,6 +6,7 @@
 module Frontend where
 
 import           Data.List    (foldl')
+import           Data.Map     as Map hiding (foldl, partition)
 import qualified Data.Set     as Set
 import           Prelude      hiding (concatMap, foldr, foldr1)
 
@@ -37,7 +39,6 @@ data Expr
 data Literal
   = LitInt Integer               -- 1
   | LitDouble Double             -- 1.1
-  | LitBool Bool                 -- true, false
   | LitChar Char                 -- 'a'
   | LitString String             -- "hello"
   deriving (Eq, Ord, Show)
@@ -168,3 +169,62 @@ occursIn name ex = name `Set.member` (allVars ex)
 
 boundVars :: (FreeVars a, AllVars a) => a -> Set.Set Name
 boundVars ex = (allVars ex) `Set.difference` (freeVars ex)
+
+-- Toplevel
+
+-- | Groups related type and function declarations into single BindGroup
+groupTopLevel :: Module -> Module
+groupTopLevel (Module n decls) = Module n $ groupTopLevelDecls decls
+
+groupTopLevelDecls :: [Decl] -> [Decl]
+groupTopLevelDecls decls =
+    let tfDecls    = [d | d <- decls, isTypeOrFunDecl d]
+        dataDecls  = [d | d@DataDecl{} <- decls]
+        classDecls = [d | d@ClassDecl{} <- decls]
+        instDecls  = [d | d@InstDecl{} <- decls]
+        groupedBindings = foldl createGroupBGs Map.empty tfDecls
+        groupedFunDecls = fmap (FunDecl . snd) (Map.toList groupedBindings)
+    in mconcat [classDecls, instDecls, dataDecls, groupedFunDecls]
+
+
+isTypeOrFunDecl :: Decl -> Bool
+isTypeOrFunDecl (FunDecl _)    = True
+isTypeOrFunDecl (TypeDecl _ _) = True
+isTypeOrFunDecl _              = False
+
+createGroupBGs :: Map.Map Name BindGroup -> Decl -> Map Name BindGroup
+createGroupBGs m (FunDecl bg@(BindGroup name matches _)) =
+  case Map.lookup name m of
+    Just _ ->
+      Map.adjust (\bg' -> bg' { _matchPats =
+                                _matchPats bg' ++ matches }) name m
+    Nothing ->
+      Map.insert name bg m
+createGroupBGs m (TypeDecl name sc) =
+  case Map.lookup name m of
+    Just _ ->
+      Map.adjust (\bg -> bg { _matchScheme = Just sc}) name m
+
+    Nothing ->
+      Map.insert name (BindGroup name [] (Just sc)) m
+createGroupBGs _ _ =
+  error "cannot createGroupBGs for this type of declaration"
+
+
+-- Deconstructors
+
+viewVars :: Expr -> [Name]
+viewVars (ELam ns _) = ns
+viewVars _           = []
+
+-- viewLam :: Expr -> Expr
+-- viewLam (ELam _ a) = viewLam a
+-- viewLam x          = x
+
+viewApp :: Expr -> (Expr, [Expr])
+viewApp = go []
+  where
+    go !xs (EApp a b)    = go (b : xs) a
+    go !xs (EInApp a b)  = go (a : xs) b
+    go !xs (EPreApp a b) = go (b : xs) a
+    go xs f              = (f, xs)

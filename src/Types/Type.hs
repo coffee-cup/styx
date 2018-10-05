@@ -3,6 +3,7 @@
 module Types.Type where
 
 import           Data.List   (foldl')
+import qualified Data.Set    as Set
 import           Data.String
 
 import           Name
@@ -157,6 +158,15 @@ unitTyCon = AlgTyCon "()"
 
 tyArrow :: Type
 tyArrow = TCon (AlgTyCon "->")
+
+-- Variables
+
+instance FreeVars Type where
+  freeVars ty = case ty of
+    TVar (TV n) -> Set.singleton n
+    TCon _ -> Set.empty
+    TApp t1 t2 -> freeVars t1 `Set.union` freeVars t2
+    TArr t1 t2 -> freeVars t1 `Set.union` freeVars t2
 
 -- class HasKind t where
 --   kind :: t -> Kind

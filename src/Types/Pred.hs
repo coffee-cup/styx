@@ -1,5 +1,7 @@
 module Types.Pred where
 
+import qualified Data.Set as Set
+
 import           Name
 import           Types.Type
 
@@ -10,3 +12,6 @@ data Qual t = [Pred] :=> t
 -- predicate
 data Pred = IsIn Name Type
   deriving (Eq, Ord, Show)
+
+instance FreeVars a => FreeVars (Qual a) where
+  freeVars (_ :=> t) = freeVars t
