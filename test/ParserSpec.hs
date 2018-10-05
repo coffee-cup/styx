@@ -81,12 +81,6 @@ spec = do
     it "double" $
       parseSimple pLiteral "1.1" `shouldBe` (Right $ LitDouble 1.1)
 
-    it "bool true" $
-      parseSimple pLiteral "true" `shouldBe` (Right $ LitBool True)
-
-    it "bool false" $
-      parseSimple pLiteral "false" `shouldBe` (Right $ LitBool False)
-
     it "char" $
       parseSimple pLiteral "'c'" `shouldBe` (Right $ LitChar 'c')
 
@@ -109,9 +103,6 @@ spec = do
 
       it "literal double" $
         parseSimple pExpr "1.1" `shouldBe` (Right $ ELit $ LitDouble 1.1)
-
-      it "literal bool" $
-        parseSimple pExpr "true" `shouldBe` (Right $ ELit $ LitBool True)
 
       it "literal char" $
         parseSimple pExpr "'a'" `shouldBe` (Right $ ELit $ LitChar 'a')
@@ -171,20 +162,20 @@ spec = do
 
     describe "If" $ do
       it "single line" $
-        parseSimple pExpr "if true then a else b" `shouldBe` (Right $ EIf
-                                                             (ELit $ LitBool True)
+        parseSimple pExpr "if True then a else b" `shouldBe` (Right $ EIf
+                                                             (EVar "True")
                                                              [EVar $ Name "a"]
                                                              [EVar $ Name "b"])
 
       it "multi line" $
-        parseSimpleUnlines pExpr ["if true", "then a", "else b"] `shouldBe` (Right $ EIf
-                                                             (ELit $ LitBool True)
+        parseSimpleUnlines pExpr ["if True", "then a", "else b"] `shouldBe` (Right $ EIf
+                                                             (EVar "True")
                                                              [EVar $ Name "a"]
                                                              [EVar $ Name "b"])
 
       it "multi line indent" $
-        parseSimpleUnlines pExpr ["if true then", "  a", "  x", "else", "  b", "  z"] `shouldBe` (Right $ EIf
-                                                                                          (ELit $ LitBool True)
+        parseSimpleUnlines pExpr ["if True then", "  a", "  x", "else", "  b", "  z"] `shouldBe` (Right $ EIf
+                                                                                          (EVar "True")
                                                                                           [EVar $ Name "a", EVar $ Name "x"]
                                                                                           [EVar $ Name "b", EVar $ Name "z"])
 
@@ -264,18 +255,18 @@ spec = do
                                               (ELit $ LitInt 2))
 
       it "and" $
-        parseSimple pExpr "false && true" `shouldBe` (Right $ EApp
+        parseSimple pExpr "False && True" `shouldBe` (Right $ EApp
                                                      (EInApp
                                                        (EVar $ Name "&&")
-                                                       (ELit $ LitBool False))
-                                                     (ELit $ LitBool True))
+                                                       (EVar "False"))
+                                                     (EVar "True"))
 
       it "or" $
-        parseSimple pExpr "false || true" `shouldBe` (Right $ EApp
+        parseSimple pExpr "False || True" `shouldBe` (Right $ EApp
                                                      (EInApp
                                                        (EVar $ Name "||")
-                                                       (ELit $ LitBool False))
-                                                     (ELit $ LitBool True))
+                                                       (EVar "False"))
+                                                     (EVar "True"))
       it "arithmetic presedence" $
         parseSimple pExpr "4 * -3 - 2 / 5" `shouldBe` (Right $ EApp
                                                       (EInApp
@@ -294,17 +285,17 @@ spec = do
                                                           (ELit (LitInt 5))))
 
       it "binary presedence" $
-        parseSimple pExpr "false && !true || false" `shouldBe` (Right $ EApp
+        parseSimple pExpr "False && !True || False" `shouldBe` (Right $ EApp
                                                                (EInApp
                                                                  (EVar (Name "||"))
                                                                  (EApp
                                                                    (EInApp
                                                                      (EVar (Name "&&"))
-                                                                     (ELit (LitBool False)))
+                                                                     (EVar "False"))
                                                                    (EPreApp
                                                                      (EVar (Name "!"))
-                                                                     (ELit (LitBool True)))))
-                                                                 (ELit (LitBool False)))
+                                                                     (EVar "True"))))
+                                                                 (EVar "False"))
 
     describe "Application" $ do
       it "single application" $
@@ -403,13 +394,13 @@ spec = do
   describe "Type Decls" $ do
     it "type with no predicates" $
       parseSimple pDecl "apply :: (a -> b) -> a -> b" `shouldBe` (Right $ TypeDecl "apply"
-                                                                   (Forall ([] :=> mkTArr [
+                                                                   (Forall ["a", "b"] ([] :=> mkTArr [
                                                                                mkTArr [var "a", var "b"],
                                                                                mkTArr [var "a", var "b"]])))
 
     it "type with predicates" $
       parseSimple pDecl "apply :: (Show a, Num b) => (a -> b) -> a -> b" `shouldBe` (Right $ TypeDecl "apply"
-                                                                   (Forall ([IsIn "Show" (var "a"),
+                                                                   (Forall ["a", "b"] ([IsIn "Show" (var "a"),
                                                                              IsIn "Num" (var "b")]
                                                                              :=> mkTArr
                                                                              [ mkTArr [var "a", var "b"]
@@ -421,14 +412,14 @@ spec = do
                                 "  plus :: a -> a -> a"] `shouldBe` (Right $ ClassDecl $
                                                                     CL [] "Num" [TV "a"]
                                                                     [TypeDecl "plus"
-                                                                     (Forall ([] :=> mkTArr [var "a", var "a", var "a"]))])
+                                                                     (Forall ["a"] ([] :=> mkTArr [var "a", var "a", var "a"]))])
 
     it "class with type decl, w/predicates" $
       parseSimpleUnlines pDecl ["class Show a => Num a where",
                                 "  plus :: a -> a -> a"] `shouldBe` (Right $ ClassDecl $
                                                                     CL [IsIn "Show" (var "a")] "Num" [TV "a"]
                                                                     [TypeDecl "plus"
-                                                                     (Forall ([] :=> mkTArr [var "a", var "a", var "a"]))])
+                                                                     (Forall ["a"] ([] :=> mkTArr [var "a", var "a", var "a"]))])
 
     it "class with type decl and func decl" $
       parseSimpleUnlines pDecl ["class Show a => Num a where",
@@ -436,7 +427,7 @@ spec = do
                                 "  id x = x"] `shouldBe` (Right $ ClassDecl $
                                                                     CL [IsIn "Show" (var "a")] "Num" [TV "a"]
                                                                     [TypeDecl "id"
-                                                                     (Forall ([] :=> mkTArr [var "a", var "a"])),
+                                                                     (Forall ["a"] ([] :=> mkTArr [var "a", var "a"])),
                                                                      FunDecl $ BindGroup (Name "id")
                                                                       [(Match [PVar "x"] [EVar "x"])]
                                                                       Nothing])

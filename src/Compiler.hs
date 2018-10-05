@@ -27,7 +27,7 @@ compileFile = do
     Just src ->
       case parseModule fname src of
         Right mod -> do
-          let mod' = groupBindings mod
+          let mod' = Syn.groupTopLevel mod
           ifSet dumpFrontend (dumpValues "Frontend" mod')
         Left s -> throwError $ ParseError s
 

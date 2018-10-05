@@ -3,19 +3,21 @@
 
 module Parser where
 
-import           Frontend
-import           Lexer
-import           Name                       hiding (prefix)
-import           Types.Pred
-import           Types.Scheme
-import           Types.Type
-
+import qualified Data.Set                   as Set
 import           Data.Text.Lazy             as L
 import           Data.Void
 import           Text.Megaparsec
 import           Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
 import           Text.Megaparsec.Expr
+
+import           Frontend
+import           Lexer
+import           Name                       hiding (prefix)
+import           Pretty
+import           Types.Pred
+import           Types.Scheme
+import           Types.Type
 
 -- Literal Parsers
 
@@ -25,11 +27,11 @@ pIntLit = LitInt <$> integer <?> "integer"
 pDoubleLit :: Parser Literal
 pDoubleLit = LitDouble <$> double <?> "double"
 
-pBoolLit :: Parser Literal
-pBoolLit = p <?> "boolean"
-  where
-    p = (rword "true" >> return (LitBool True))
-      <|> (rword "false" >> return (LitBool False))
+-- pBoolLit :: Parser Literal
+-- pBoolLit = p <?> "boolean"
+--   where
+--     p = (rword "true" >> return (LitBool True))
+--       <|> (rword "false" >> return (LitBool False))
 
 pCharLit :: Parser Literal
 pCharLit = do
@@ -48,7 +50,6 @@ pStringLit = do
 pLiteral :: Parser Literal
 pLiteral = try pDoubleLit
   <|> pIntLit
-  <|> pBoolLit
   <|> pCharLit
   <|> pStringLit
 
@@ -249,7 +250,9 @@ pQual = do
 pScheme :: Parser Scheme
 pScheme = (try pq <|> pt) <?> "type scheme"
   where
-    pq = Forall <$> pQual
+    pq = do
+      qual <- pQual
+      return $ Forall (Set.toList (freeVars qual)) qual
     pt = toScheme <$> pType
 
 -- Patterns
@@ -410,6 +413,11 @@ parseSimple p = parseUnpack . runParser (contents p) "<stdin>" . L.strip
 
 parseSimpleString :: Parser a -> String -> Either String a
 parseSimpleString p = parseSimple p . L.pack
+
+parseAndPrint :: Pretty a => Parser a -> String -> IO ()
+parseAndPrint p s = case parseSimple p (L.pack s) of
+  Right a -> putStrLn $ ppg a
+  Left e -> print e
 
 runStyxParser :: String -> Parser a -> L.Text -> Either String a
 runStyxParser input p =
