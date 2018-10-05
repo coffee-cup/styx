@@ -217,7 +217,7 @@ pType = makeExprParser atype typeOperators
     typeOperators :: [[Operator Parser Type]]
     typeOperators = [ [ InfixR (mkTArr2 <$ symbol "->") ] ]
     atype = choice
-      [ pTypeParens
+      [ try pTypeParens
       , try pTypePrim
       , pTypeVar
       , pTypeCon

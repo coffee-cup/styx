@@ -40,6 +40,9 @@ spec = do
       it "bool" $
         parseSimple pType "Bool" `shouldBe` (Right $ tyBool)
 
+      it "unit"  $
+        parseSimple pType "()" `shouldBe` (Right $ tyUnit)
+
     describe "Constructors" $ do
       it "no vars" $
         parseSimple pType "Maybe" `shouldBe` (Right $ mkTCon "Maybe")
