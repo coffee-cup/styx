@@ -22,6 +22,9 @@ instance Named Type where
     AlgTyCon n  -> n
     PrimTyCon n -> n
 
+instance Named TVar where
+  getName (TV n) = n
+
 -- type variables
 
 data TVar = TV

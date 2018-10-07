@@ -252,7 +252,7 @@ pScheme = (try pq <|> pt) <?> "type scheme"
   where
     pq = do
       qual <- pQual
-      return $ Forall (Set.toList (freeVars qual)) qual
+      return $ Forall (Set.map TV (freeVars qual)) qual
     pt = toScheme <$> pType
 
 -- Patterns

@@ -10,12 +10,16 @@ import           Types.Pred
 import           Types.Scheme
 import           Types.Type
 
+import qualified Data.Set                        as Set
 import qualified Data.Text.Lazy                  as L
 import qualified Data.Text.Lazy.IO               as LIO
 import           System.IO.Unsafe
 
 import           Test.Hspec
 import           Test.Hspec.Expectations.Contrib
+
+toTVarSet :: [String] -> Set.Set TVar
+toTVarSet xs = Set.fromList (map (TV . Name) xs)
 
 spec :: Spec
 spec = do
@@ -397,13 +401,13 @@ spec = do
   describe "Type Decls" $ do
     it "type with no predicates" $
       parseSimple pDecl "apply :: (a -> b) -> a -> b" `shouldBe` (Right $ TypeDecl "apply"
-                                                                   (Forall ["a", "b"] ([] :=> mkTArr [
+                                                                   (Forall (toTVarSet ["a", "b"]) ([] :=> mkTArr [
                                                                                mkTArr [var "a", var "b"],
                                                                                mkTArr [var "a", var "b"]])))
 
     it "type with predicates" $
       parseSimple pDecl "apply :: (Show a, Num b) => (a -> b) -> a -> b" `shouldBe` (Right $ TypeDecl "apply"
-                                                                   (Forall ["a", "b"] ([IsIn "Show" (var "a"),
+                                                                   (Forall (toTVarSet ["a", "b"]) ([IsIn "Show" (var "a"),
                                                                              IsIn "Num" (var "b")]
                                                                              :=> mkTArr
                                                                              [ mkTArr [var "a", var "b"]
@@ -415,14 +419,14 @@ spec = do
                                 "  plus :: a -> a -> a"] `shouldBe` (Right $ ClassDecl $
                                                                     CL [] "Num" [TV "a"]
                                                                     [TypeDecl "plus"
-                                                                     (Forall ["a"] ([] :=> mkTArr [var "a", var "a", var "a"]))])
+                                                                     (Forall (toTVarSet ["a"]) ([] :=> mkTArr [var "a", var "a", var "a"]))])
 
     it "class with type decl, w/predicates" $
       parseSimpleUnlines pDecl ["class Show a => Num a where",
                                 "  plus :: a -> a -> a"] `shouldBe` (Right $ ClassDecl $
                                                                     CL [IsIn "Show" (var "a")] "Num" [TV "a"]
                                                                     [TypeDecl "plus"
-                                                                     (Forall ["a"] ([] :=> mkTArr [var "a", var "a", var "a"]))])
+                                                                     (Forall (toTVarSet ["a"]) ([] :=> mkTArr [var "a", var "a", var "a"]))])
 
     it "class with type decl and func decl" $
       parseSimpleUnlines pDecl ["class Show a => Num a where",
@@ -430,7 +434,7 @@ spec = do
                                 "  id x = x"] `shouldBe` (Right $ ClassDecl $
                                                                     CL [IsIn "Show" (var "a")] "Num" [TV "a"]
                                                                     [TypeDecl "id"
-                                                                     (Forall ["a"] ([] :=> mkTArr [var "a", var "a"])),
+                                                                     (Forall (toTVarSet ["a"]) ([] :=> mkTArr [var "a", var "a"])),
                                                                      FunDecl $ BindGroup (Name "id")
                                                                       [(Match [PVar "x"] [EVar "x"])]
                                                                       Nothing])

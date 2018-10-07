@@ -7,22 +7,18 @@ module Repl
   ( entry
   ) where
 
+import           Control.Monad.Except
+import           Control.Monad.State.Strict
+import           Data.List                  (isPrefixOf)
+import qualified Data.Text.Lazy             as L
+import qualified Data.Text.Lazy.IO          as L
+import           System.Console.Repline
+import           System.Exit
+
 import           Compiler
 import           Flags
 import           Monad
 import           Pretty
-
-import qualified Data.Text.Lazy             as L
-import qualified Data.Text.Lazy.IO          as L
-
-import           Control.Monad.Except
-import           Control.Monad.State.Strict
-
-import           Data.List                  (isPrefixOf)
-
-import           System.Console.Repline
-import           System.Exit
-
 
 -- Types
 

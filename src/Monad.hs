@@ -2,15 +2,14 @@
 
 module Monad where
 
-import qualified Flags
-import qualified Frontend             as Syn
-
-import qualified Data.Text.Lazy            as L
-
 import           Control.Applicative
 import           Control.Monad.Except
 import           Control.Monad.State
+import qualified Data.Text.Lazy       as L
 import           System.Directory
+
+import qualified Flags
+import qualified Frontend             as Syn
 
 -- Compiler Monad
 
