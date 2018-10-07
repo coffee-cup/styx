@@ -6,7 +6,8 @@
 
 module Pretty where
 
-import           Data.List        (intersperse)
+import           Data.List        (intercalate, intersperse)
+import qualified Data.Map         as Map
 import           Text.PrettyPrint
 
 import qualified Frontend         as S
@@ -14,6 +15,7 @@ import           Name
 import           Types.Kind
 import           Types.Pred
 import           Types.Scheme
+import           Types.Subst
 import           Types.Type
 
 class Pretty p where
@@ -192,7 +194,7 @@ ppsdecl = ppg
 ppmodule :: S.Module -> String
 ppmodule = ppg
 
--- Type
+-- Types
 
 isArrow :: Type -> Bool
 isArrow TArr{} = True
@@ -232,6 +234,14 @@ instance Pretty t => Pretty (Qual t) where
 instance Pretty Scheme where
   ppr p (Forall _ qual) = ppr p qual
 
+instance Pretty Subst where
+  ppr _ (Subst s) =
+    "{" <+> vcat psubsts <+> "}"
+    where
+      psubsts =
+        punctuate comma
+        [ pp k <+> "-->" <+> pp v | (k, v) <- Map.toList s ]
+
 ppcontext :: [Pred] -> Doc
 ppcontext ps =
   if length ps > 0
@@ -262,7 +272,7 @@ pppred = ppg
 
 isKArrow :: Kind -> Bool
 isKArrow KArr{} = True
-isKArrow _ = False
+isKArrow _      = False
 
 instance Pretty Kind where
   ppr p (KArr a b) =
