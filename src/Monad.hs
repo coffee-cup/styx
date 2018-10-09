@@ -8,6 +8,7 @@ import           Control.Monad.State
 import qualified Data.Text.Lazy       as L
 import           System.Directory
 
+import           CompilerError
 import qualified Flags
 import qualified Frontend             as Syn
 
@@ -47,12 +48,6 @@ emptyCS = CompilerState
   }
 
 type Pos = String
-
-data CompilerError
-  = FileNotFound FilePath
-  | ReplCommandError String
-  | ParseError String
-  deriving (Eq, Show)
 
 -- Run the compiler pipeline
 runCompilerM

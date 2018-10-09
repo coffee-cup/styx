@@ -23,4 +23,4 @@ instance Substitutable Scheme where
         subst' = Subst (subst `Map.difference` ns')
     in Forall ns (apply subst' qual)
 
-  ftv sc = Set.map TV $ freeVars sc
+  ftv (Forall as t) = ftv t `Set.difference` as

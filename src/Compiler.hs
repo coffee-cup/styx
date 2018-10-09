@@ -12,6 +12,7 @@ import           Data.Text.Lazy       as L
 import           Data.Text.Lazy.IO    as L
 import           System.Directory
 
+import           CompilerError
 import           Desugar
 import           Flags
 import qualified Frontend             as Syn

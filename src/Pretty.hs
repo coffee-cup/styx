@@ -12,6 +12,7 @@ import           Text.PrettyPrint
 
 import qualified Frontend         as S
 import           Name
+import           Types.Infer
 import           Types.Kind
 import           Types.Pred
 import           Types.Scheme
@@ -241,6 +242,16 @@ instance Pretty Subst where
       psubsts =
         punctuate comma
         [ pp k <+> "-->" <+> pp v | (k, v) <- Map.toList s ]
+
+instance Pretty InferError where
+  ppr _ e = case e of
+    CannotUnify t1 t2 ->
+      "Cannot unify" <+> pp t1 <+> "with" <+> pp t2
+    OccursCheckFailed name t ->
+      "Occurs check failed:" <+> pp name <+> "alraedy appears in"
+            <+> pp t
+    UnknownIdentifier name ->
+      "Unknown identifier:" <+> pp name
 
 ppcontext :: [Pred] -> Doc
 ppcontext ps =

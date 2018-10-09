@@ -13,7 +13,7 @@ newtype Subst = Subst (Map.Map TVar Type)
 nullSubst :: Subst
 nullSubst = Subst Map.empty
 
--- | map single variable u to type
+-- | Map single variable u to type
 (+->) :: TVar -> Type -> Subst
 u +-> t = Subst $ Map.fromList [(u, t)]
 

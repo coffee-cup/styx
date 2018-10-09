@@ -14,6 +14,9 @@ data Qual t = [Pred] :=> t
 data Pred = IsIn Name Type
   deriving (Eq, Ord, Show)
 
+instance Named Pred where
+  getName (IsIn n _) = n
+
 instance FreeVars a => FreeVars (Qual a) where
   freeVars (_ :=> t) = freeVars t
 
