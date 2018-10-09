@@ -72,6 +72,22 @@ initInfer = InferState
   , subst = mempty
   }
 
+getSubst :: Infer Subst
+getSubst = do
+  st <- get
+  return $ subst st
+
+unify :: Type -> Type -> Infer ()
+unify t1 t2 = do
+  s <- getSubst
+  u <- mgu (apply s t1) (apply s t2)
+  extSubst u
+
+extSubst :: Subst -> Infer ()
+extSubst s = do
+  s' <- getSubst
+  modify (\st -> st { subst = s <> s' })
+
 -- Unification
 
 -- | Find the most general unifier
@@ -192,3 +208,78 @@ addInst ps p@(IsIn i _) ce
 overlap :: Pred -> Pred -> Bool
 overlap p q = defined $ runInfer emptyEnv (mguPred p q)
 
+-- if predicate p holds, then so must all of the superclasses
+-- bySuper returns a list of all predicates that must hold based only
+--   on super class information (might be duplicates)
+bySuper :: ClassEnv -> Pred -> [Pred]
+bySuper ce p@(IsIn i t)
+  = p : concat [ bySuper ce (IsIn i' t) | i' <- super ce i ]
+
+-- returns list of predicates that are applicable for given
+--   predicate p by looking only at the instance information
+-- we use matchPred because the type must be able to be unified from the
+--   type in the p predicate
+byInst :: ClassEnv -> Pred -> Infer [Pred]
+byInst ce p@(IsIn i t) = do
+  ps <- mapM tryInst (insts ce i)
+  let ps' = join ps
+  return ps'
+  where
+    tryInst :: Qual Pred -> Infer [Pred]
+    tryInst (ps :=> h) = do u <- matchPred h p
+                            let preds = map (apply u) ps
+                            return preds
+
+-- Given a particular class environment ce, the intention here is that
+--   entail ce ps p will be True if, and only if, the predicate p will
+--   hold whenever all of the predicates in ps are satisfied:
+-- First check if p can be deduced by looking only at superclasses
+--   next, look at matching instance and generate list of predicates qs
+--   as a new goal, each of which must be entail with ps
+entail :: ClassEnv -> [Pred] -> Pred -> Bool
+entail ce ps p = any (p `elem`) (map (bySuper ce) ps) ||
+                 case runInfer emptyEnv $ byInst ce p of
+                   Left _ -> False
+                   Right qs -> all (entail ce ps) qs
+
+-- head-normal form: lambda-term that has a top level
+--   abstraction where the body does not have lambda sub-terms
+--   that can be beta-reduced
+--   http://barrywatson.se/lsi/lsi_head_normal_form.html
+-- inHnf checks if a predicate is in head-normal form
+inHnf :: Pred -> Bool
+inHnf (IsIn c t) = hnf t
+  where hnf (TVar v)   = True
+        hnf (TCon tc)  = False
+        hnf (TApp t _) = hnf t
+        hnf (TArr t _) = hnf t
+
+toHnfs :: ClassEnv -> [Pred] -> Infer [Pred]
+toHnfs ce ps = do
+  pss <- mapM (toHnf ce) ps
+  return (concat pss)
+
+toHnf :: ClassEnv -> Pred -> Infer [Pred]
+toHnf ce p | inHnf p = return [p]
+           | otherwise = do
+               ps <- byInst ce p
+               toHnfs ce ps
+
+-- reduce list of predicates to simpiler, yet equal, list of predicates
+-- we can reduce by building up a new list of predicates where each pred
+--   in the list is not entailed by the new list
+simplify :: ClassEnv -> [Pred] -> [Pred]
+simplify ce = loop []
+  where loop rs [] = rs
+        loop rs (p:ps) | entail ce (rs++ps) p = loop rs ps
+                       | otherwise = loop (p:rs) ps
+
+-- reduce a list of predicates by converting to HNF, then simplifying
+reduce :: ClassEnv -> [Pred] -> Infer [Pred]
+reduce ce ps = do
+  qs <- toHnfs ce ps
+  return (simplify ce qs)
+
+-- version of simplify that makes use of only superclass entails
+scEntail :: ClassEnv -> [Pred] -> Pred -> Bool
+scEntail ce ps p = any (p `elem`) (map (bySuper ce) ps)
