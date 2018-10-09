@@ -196,6 +196,14 @@ addClass (CL preds name vars decls) ce
   where
     predNames = map getName preds
 
+addClasses :: Module -> Infer ClassEnv
+addClasses (Module _ decls) = envT initialClassEnv
+  where
+    decls' = [ d | d@ClassDecl{} <- decls ]
+    cDecls = map (\(ClassDecl d) -> d) decls'
+    envTs = map addClass cDecls
+    envT = foldl1 (<:>) envTs
+
 addInst :: [Pred] -> Pred -> EnvTransformer
 addInst ps p@(IsIn i _) ce
   | not (isJust (classes ce i)) = fail "no class for instance"
