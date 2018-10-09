@@ -63,4 +63,3 @@ ifSet :: (Flags.Flags -> Bool) -> CompilerM a -> CompilerM ()
 ifSet f m = do
   flags <- gets _flags
   when (f flags) (void m)
-

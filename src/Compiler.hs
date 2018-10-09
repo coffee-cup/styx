@@ -18,19 +18,41 @@ import           Flags
 import qualified Frontend             as Syn
 import           Monad
 import           Parser
+import           Types.Infer
 
-compileFile :: CompilerM ()
+useFile :: FilePath -> CompilerM ()
+useFile fname = do
+  mtext <- liftIO $ getFileContents fname
+  modify (\cs ->  cs { _fname = Just fname,
+                    _src = mtext })
+    
+readAndCompileFile :: FilePath -> CompilerM Syn.Module
+readAndCompileFile fname = do
+  useFile fname
+  compileFile
+  
+compileFile :: CompilerM Syn.Module
 compileFile = do
   Just fname <- gets _fname
-  msrc <- gets _src
-  case msrc of
-    Nothing -> throwError $ FileNotFound fname
-    Just src ->
-      case parseModule fname src of
-        Right mod -> do
-          let mod' = Syn.groupTopLevel mod
-          ifSet dumpFrontend (dumpValues "Frontend" mod')
-        Left s -> throwError $ ParseError s
+  Just src <- gets _src
+  case parseModule fname src of
+    Right mod -> do
+      let mod' = Syn.groupTopLevel mod
+      ifSet dumpFrontend (dumpValues "Frontend" mod')
+      return mod'
+    Left s -> throwError $ ParseError s
+
+  -- Just fname <- gets _fname
+  -- msrc <- gets _src
+  -- case msrc of
+  --   Nothing -> throwError $ FileNotFound fname
+  --   Just src ->
+  --     case parseModule fname src of
+  --       Right mod -> do
+  --         let mod' = Syn.groupTopLevel mod
+  --         ifSet dumpFrontend (dumpValues "Frontend" mod')
+  --         return mod'
+  --       Left s -> throwError $ ParseError s
 
 compileLine :: CompilerM ()
 compileLine = do

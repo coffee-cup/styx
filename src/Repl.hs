@@ -63,7 +63,7 @@ execFile fname = do
   cs <- gets _compilerState
   let cs' = cs { _fname = Just fname, _src = mtext }
   updateCompilerState cs'
-  exec True compileFile
+  exec True (void compileFile)
 
 cmd :: String -> Repl ()
 cmd source = execLine True (L.pack source)
