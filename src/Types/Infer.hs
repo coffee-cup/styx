@@ -152,31 +152,34 @@ type Class = ([Name], [Inst])
 type Inst = (Qual Pred)
 
 data ClassEnv = ClassEnv
-  { classes  :: Name -> Maybe Class
+  { classes  :: Map.Map Name Class
   , defaults :: [Type]
-  }
+  } deriving (Show)
 
 -- | list of super classes
 super :: ClassEnv -> Name -> [Name]
-super ce i = case classes ce i of Just (is, its) -> is
+super ce i = case Map.lookup i (classes ce) of
+  Just (is, its) -> is
 
 -- | list of instances of a given class
 insts :: ClassEnv -> Name -> [Inst]
-insts ce i = case classes ce i of Just (is, its) -> its
+insts ce i = case Map.lookup i (classes ce) of
+  Just (is, its) -> its
 
 defined :: Either a b -> Bool
 defined (Right _) = True
 defined (Left _)  = False
 
+findClass :: ClassEnv -> Name -> Maybe Class
+findClass ce n = Map.lookup n (classes ce)
+
 modifyEnv :: ClassEnv -> Name -> Class -> ClassEnv
-modifyEnv ce i c = ce { classes = \j ->
-                       if i == j
-                       then Just c
-                       else classes ce j }
+modifyEnv ce n c = ce { classes =
+                        Map.insert n c (classes ce)}
 
 initialClassEnv :: ClassEnv
 initialClassEnv = ClassEnv
-  { classes = \_ -> fail "class not defined"
+  { classes = Map.empty
   , defaults = [tyInt, tyDouble]
   }
 
@@ -190,14 +193,14 @@ infixr 5 <:>
 
 addClass :: ClassDecl -> EnvTransformer
 addClass (CL preds name vars decls) ce
-  | isJust (classes ce name) = fail "class already defined"
-  | any (not . isJust . classes ce) predNames = fail "superclass not defined"
+  | isJust (findClass ce name) = fail "class already defined"
+  | any (not . isJust . findClass ce) predNames = fail "superclass not defined"
   | otherwise                           = return (modifyEnv ce name (predNames, []))
   where
     predNames = map getName preds
 
-addClasses :: Module -> Infer ClassEnv
-addClasses (Module _ decls) = envT initialClassEnv
+addModuleClasses :: Module -> Infer ClassEnv
+addModuleClasses (Module _ decls) = envT initialClassEnv
   where
     decls' = [ d | d@ClassDecl{} <- decls ]
     cDecls = map (\(ClassDecl d) -> d) decls'
@@ -206,7 +209,7 @@ addClasses (Module _ decls) = envT initialClassEnv
 
 addInst :: [Pred] -> Pred -> EnvTransformer
 addInst ps p@(IsIn i _) ce
-  | not (isJust (classes ce i)) = fail "no class for instance"
+  | not (isJust (findClass ce i)) = fail "no class for instance"
   | any (overlap p) qs = fail "overlapping instance"
   | otherwise = return (modifyEnv ce i c)
     where its = insts ce i

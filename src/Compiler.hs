@@ -13,7 +13,6 @@ import           Data.Text.Lazy.IO    as L
 import           System.Directory
 
 import           CompilerError
-import           Desugar
 import           Flags
 import qualified Frontend             as Syn
 import           Monad
@@ -26,10 +25,16 @@ useFile fname = do
   modify (\cs ->  cs { _fname = Just fname,
                     _src = mtext })
     
-readAndCompileFile :: FilePath -> CompilerM Syn.Module
+readAndCompileFile :: FilePath -> IO ClassEnv
 readAndCompileFile fname = do
-  useFile fname
-  compileFile
+  (Right a, cs) <- runCompilerM cm emptyCS
+  return a
+  where
+    cm = do
+      useFile fname
+      mod <- compileFile
+      case runInfer emptyEnv $ addModuleClasses mod of
+        Right (ce) -> return ce
   
 compileFile :: CompilerM Syn.Module
 compileFile = do
