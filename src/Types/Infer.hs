@@ -30,7 +30,16 @@ data InferError
 
   -- | Classes differ when unifying
   | ClassesDiffer
-  deriving (Show)
+
+  -- | Instance class is not defined
+  | ClassNotDefined Name
+
+  -- | Class has already been defined
+  | ClassAlreadyDefined Name
+
+  -- | Instance already defined for class
+  | OverlappingInstance Name Type
+  deriving (Eq, Show)
 
 -- Environmnet
 
@@ -145,11 +154,13 @@ liftPred m (IsIn i t) (IsIn i' t')
 -- Classes
 
 -- | (list of super classes, list of instances)
-type Class = ([Name], [Inst])
+data Class = Class Name [Name] [Inst]
+  deriving (Show)
 
 -- | requirements for instance and predicate information
 -- ex. [IsIn "Ord" "a", IsIn "Ord" "b"] :=> IsIn "Ord" ("a", "b")
-type Inst = (Qual Pred)
+data Inst = Inst (Qual Pred)
+  deriving (Show)
 
 data ClassEnv = ClassEnv
   { classes  :: Map.Map Name Class
@@ -159,12 +170,12 @@ data ClassEnv = ClassEnv
 -- | list of super classes
 super :: ClassEnv -> Name -> [Name]
 super ce i = case Map.lookup i (classes ce) of
-  Just (is, its) -> is
+  Just (Class _ is _) -> is
 
 -- | list of instances of a given class
 insts :: ClassEnv -> Name -> [Inst]
 insts ce i = case Map.lookup i (classes ce) of
-  Just (is, its) -> its
+  Just (Class _ _ its) -> its
 
 defined :: Either a b -> Bool
 defined (Right _) = True
@@ -196,31 +207,49 @@ emptyEnvTransformer _ = return initialClassEnv
 
 addClass :: ClassDecl -> EnvTransformer
 addClass (CL preds name vars decls) ce
-  | isJust (findClass ce name) = fail "class already defined"
-  | any (not . isJust . findClass ce) predNames = fail "superclass not defined"
-  | otherwise                           = return (modifyEnv ce name (predNames, []))
+  | isJust (findClass ce name) = throwError $ ClassAlreadyDefined name
+  | any (not . isJust . findClass ce) superNames =
+    throwError $ ClassNotDefined name
+  | otherwise                           = return (modifyEnv ce name cl)
   where
-    predNames = map getName preds
+    superNames = map getName preds
+    cl = Class name superNames []
 
-addModuleClasses :: Module -> Infer ClassEnv
-addModuleClasses (Module _ decls) = envT initialClassEnv
+addInst :: InstDecl -> EnvTransformer
+addInst (INST ps i t decls) ce
+  | not (isJust (findClass ce i)) = throwError $ ClassNotDefined i
+  | any (overlap p) qs = throwError $ OverlappingInstance i t
+  | otherwise = return (modifyEnv ce i cl)
+    where
+      p = IsIn i t
+      its = insts ce i
+      qs = [ q | Inst(_ :=> q) <- its ]
+      cl = Class i (super ce i) (Inst (ps :=> p) : its)
+
+overlap :: Pred -> Pred -> Bool
+overlap p q = defined $ runInfer emptyEnv (mguPred p q)
+
+addModuleClasses :: Module -> Infer EnvTransformer
+addModuleClasses (Module _ decls) = return envT
   where
     decls' = [ d | d@ClassDecl{} <- decls ]
     cDecls = map (\(ClassDecl d) -> d) decls'
     envTs = map addClass cDecls
     envT = foldl (<:>) emptyEnvTransformer envTs
 
-addInst :: [Pred] -> Pred -> EnvTransformer
-addInst ps p@(IsIn i _) ce
-  | not (isJust (findClass ce i)) = fail "no class for instance"
-  | any (overlap p) qs = fail "overlapping instance"
-  | otherwise = return (modifyEnv ce i c)
-    where its = insts ce i
-          qs = [ q | (_ :=> q) <- its ]
-          c = (super ce i, (ps :=> p) : its)
+addModuleInsts :: Module -> EnvTransformer -> Infer EnvTransformer
+addModuleInsts (Module _ decls) env = return envT
+  where
+    decls' = [ d | d@InstDecl{} <- decls ]
+    iDecls = map (\(InstDecl d) -> d) decls'
+    envTs = map addInst iDecls
+    envT = foldl (<:>) env envTs
 
-overlap :: Pred -> Pred -> Bool
-overlap p q = defined $ runInfer emptyEnv (mguPred p q)
+buildModuleClassEnv :: Module -> Infer ClassEnv
+buildModuleClassEnv mod = do
+  et1 <- addModuleClasses mod
+  et2 <- addModuleInsts mod et1
+  et2 initialClassEnv
 
 -- if predicate p holds, then so must all of the superclasses
 -- bySuper returns a list of all predicates that must hold based only
@@ -239,10 +268,10 @@ byInst ce p@(IsIn i t) = do
   let ps' = join ps
   return ps'
   where
-    tryInst :: Qual Pred -> Infer [Pred]
-    tryInst (ps :=> h) = do u <- matchPred h p
-                            let preds = map (apply u) ps
-                            return preds
+    tryInst :: Inst -> Infer [Pred]
+    tryInst (Inst (ps :=> h)) = do u <- matchPred h p
+                                   let preds = map (apply u) ps
+                                   return preds
 
 -- Given a particular class environment ce, the intention here is that
 --   entail ce ps p will be True if, and only if, the predicate p will
