@@ -313,7 +313,8 @@ pClassDecl = L.indentBlock scn p' <?> "class declaration"
       return $ return . ClassDecl . CL preds name vars
     p' = do
       f <- p
-      return $ L.IndentSome Nothing f (choice [try pTypeDecl, pFunctionDecl])
+      return $
+         L.IndentMany Nothing f (choice [try pTypeDecl, pFunctionDecl])
 
 pInstDecl :: Parser Decl
 pInstDecl = L.indentBlock scn p' <?> "instance declaration"
@@ -328,7 +329,7 @@ pInstDecl = L.indentBlock scn p' <?> "instance declaration"
       return $ return . InstDecl . INST preds name t
     p' = do
       f <- p
-      return $ L.IndentSome Nothing f pFunctionDecl
+      return $ L.IndentMany Nothing f pFunctionDecl
 
 pTypeDecl :: Parser Decl
 pTypeDecl = do
