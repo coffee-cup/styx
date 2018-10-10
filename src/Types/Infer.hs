@@ -191,6 +191,9 @@ infixr 5 <:>
   ce' <- f ce
   g ce'
 
+emptyEnvTransformer :: EnvTransformer
+emptyEnvTransformer _ = return initialClassEnv
+
 addClass :: ClassDecl -> EnvTransformer
 addClass (CL preds name vars decls) ce
   | isJust (findClass ce name) = fail "class already defined"
@@ -205,7 +208,7 @@ addModuleClasses (Module _ decls) = envT initialClassEnv
     decls' = [ d | d@ClassDecl{} <- decls ]
     cDecls = map (\(ClassDecl d) -> d) decls'
     envTs = map addClass cDecls
-    envT = foldl1 (<:>) envTs
+    envT = foldl (<:>) emptyEnvTransformer envTs
 
 addInst :: [Pred] -> Pred -> EnvTransformer
 addInst ps p@(IsIn i _) ce
