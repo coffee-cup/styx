@@ -17,25 +17,30 @@ import           Flags
 import qualified Frontend             as Syn
 import           Monad
 import           Parser
+import           Pretty
 import           Types.Infer
 
 useFile :: FilePath -> CompilerM ()
 useFile fname = do
   mtext <- liftIO $ getFileContents fname
   modify (\cs ->  cs { _fname = Just fname,
-                    _src = mtext })
-    
-readAndCompileFile :: FilePath -> IO ClassEnv
+                       _src = mtext })
+
+readAndCompileFile :: FilePath -> IO ()
 readAndCompileFile fname = do
-  (Right a, cs) <- runCompilerM cm emptyCS
-  return a
+  (res, cs) <- runCompilerM cm emptyCS
+  case res of
+    Right a -> Prelude.putStrLn $ ppg a
+    Left e  -> Prelude.putStrLn $ ppg e
   where
     cm = do
       useFile fname
       mod <- compileFile
-      case runInfer emptyEnv $ addModuleClasses mod of
+      case runInfer emptyEnv $ buildModuleClassEnv mod of
         Right (ce) -> return ce
-  
+        Left e     -> throwError $ InferError e
+
+
 compileFile :: CompilerM Syn.Module
 compileFile = do
   Just fname <- gets _fname

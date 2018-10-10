@@ -10,6 +10,7 @@ import           Data.List        (intercalate, intersperse)
 import qualified Data.Map         as Map
 import           Text.PrettyPrint
 
+import CompilerError
 import qualified Frontend         as S
 import           Name
 import           Types.Infer
@@ -73,12 +74,24 @@ commafy = hsep . punctuate comma
 ppmaybe :: Pretty a => Maybe a -> Doc
 ppmaybe = maybe empty pp
 
+ppif :: Bool -> Doc -> Doc
+ppif c d = if c then d else empty
+
 banner :: String
 banner = render $
   text (ascii ++
   " Styx 0.1.0\n")
   where
     ascii = "  ___ _            \r\n / __| |_ _  ___ __\r\n \\__ \\  _| || \\ \\ /\r\n |___/\\__|\\_, /_\\_\\\r\n          |__/     \r\n\n"
+
+-- Compiler
+
+instance Pretty CompilerError where
+  ppr _ e = case e of
+    FileNotFound fname -> "File:" <+> pp fname <+> " not found"
+    ReplCommandError s -> pp s
+    ParseError s -> pp s
+    InferError e -> pp e
 
 -- Frontend
 
@@ -243,6 +256,24 @@ instance Pretty Subst where
         punctuate comma
         [ pp k <+> "-->" <+> pp v | (k, v) <- Map.toList s ]
 
+instance Pretty Inst where
+  ppr p (Inst q) = ppr p q
+
+instance Pretty Class where
+  ppr _ (Class n supers insts) =
+    sep psupers <+> parrow <+> pp n <+> ppipe
+    <+> nest 2 pinsts
+    where
+      psupers = punctuate comma (fmap pp supers)
+      pinsts = vcat (fmap pp insts)
+      parrow = ppif (length supers > 0) (text "=>")
+      ppipe = ppif (length insts > 0) (text "|")
+
+instance Pretty ClassEnv where
+  ppr _ (ClassEnv classes _) = vcat asdf
+    where
+      asdf = [ pp c | (_, c) <- Map.toList classes ]
+
 instance Pretty InferError where
   ppr _ e = case e of
     CannotUnify t1 t2 ->
@@ -252,6 +283,12 @@ instance Pretty InferError where
             <+> pp t
     UnknownIdentifier name ->
       "Unknown identifier:" <+> pp name
+    ClassNotDefined name ->
+      "Class `" <> pp name <> "` is not defined"
+    ClassAlreadyDefined name ->
+      "Class `" <> pp name <> "` is already defined"
+    OverlappingInstance name t ->
+      "Instance for class `" <> pp name <> "` is already defined for type `" <> pp t <> "`"
 
 ppcontext :: [Pred] -> Doc
 ppcontext ps =
