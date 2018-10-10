@@ -450,13 +450,14 @@ spec = do
                                                                       Nothing])
 
     it "class with no decls fails" $
-      isLeft $ parseSimpleUnlines pDecl ["class Show a => Num a where"]
+      parseSimpleUnlines pDecl ["class Show a => Num a where"] `shouldBe` (Right $ ClassDecl $
+                                                                          CL [IsIn "Show" (var "a")] "Num" [TV "a"] [])
 
   describe "Instance Decls" $ do
     it "instance with no predicates" $
-      parseSimpleUnlines pDecl ["instance Num a where",
+      parseSimpleUnlines pDecl ["instance Num Int where",
                                 "  id x = x"] `shouldBe` (Right $ InstDecl $
-                                                         INST [] "Num" (var "a")
+                                                         INST [] "Num" tyInt
                                                            [FunDecl $ BindGroup (Name "id")
                                                             [(Match [PVar "x"] [EVar "x"])]
                                                              Nothing])
